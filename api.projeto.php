@@ -96,6 +96,23 @@ class TicketApiControllerProjeto extends TicketApiController{
             $this->exerr(500, _S("unknown error"));
     }
 
+    function create($format) {
+
+        if (!($key=$this->requireApiKey()) || !$key->canCreateTickets())
+            return $this->exerr(401, __('API key not authorized'));
+
+        $ticket = null;
+        $ticket = $this->createTicket($this->getRequest($format));
+        
+        if ($ticket)
+            $this->response(201, $ticket->getNumber());
+        else
+            $this->exerr(500, _S("unknown error"));
+
+    }
+
+
+
     function close($format) {
         
         if (!($key=$this->requireApiKey()) || !$key->canCloseTickets() )

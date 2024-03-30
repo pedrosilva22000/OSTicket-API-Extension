@@ -20,7 +20,7 @@ require 'api.inc.php';
 require_once INCLUDE_DIR."class.dispatcher.php";
 $dispatcher = patterns('',
         
-        url_post("^/open/tickets\.(?P<format>xml|json|email)$", array('api.tickets.php:TicketApiController','create')),
+        url_post("^/open/tickets\.(?P<format>xml|json|email)$", array('api.projeto.php:TicketApiControllerProjeto','create')),
 
         url_post("^/close/tickets\.(?P<format>xml|json|email)$", array('api.projeto.php:TicketApiControllerProjeto','close')),
 
