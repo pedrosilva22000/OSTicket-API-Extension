@@ -28,7 +28,7 @@ $dispatcher = patterns('',
 
         url_post("^/requestApiKey/tickets\.(?P<format>xml|json|email)$", array('api.projeto.php:TicketApiControllerProjeto','requestApiKey')),
 
-        //endpoint para adicionar tabelas para testar
+        //endpoint para adicionar tabelas e criar rows, para testar enquanto não for criado um ficheiro sql
         url_post("^/createTables/tickets\.(?P<format>xml|json|email)$", array('api.projeto.php:TicketApiControllerProjeto','createTables')),
 
         url('^/tasks/', patterns('',

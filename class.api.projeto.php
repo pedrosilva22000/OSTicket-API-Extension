@@ -2,6 +2,7 @@
 
 include_once INCLUDE_DIR.'class.api.php';
 
+//classe que dá override a algumas funções da class api para adaptar a nova tabela api key
 class ApiProjeto extends API{
 
     function __construct($id) {
@@ -70,7 +71,7 @@ class ApiProjeto extends API{
                .' '.__('Internal error occurred');
 
         } else {
-
+            //query que desativa api keys antigas do staff que está a receber uma key nova, se existirem
             $updateSql='UPDATE '.TABLE_PREFIX.API_NEW_TABLE.' SET isactive = 0 WHERE id_staff='.db_input($vars['idStaff']);
             if(!db_query($updateSql))
                 return false;

@@ -4,9 +4,9 @@ include_once INCLUDE_DIR.'api.tickets.php';
 include_once 'class.api.projeto.php';
 include 'api.config.php';
 
-/* Adicionado */
 class TicketApiControllerProjeto extends TicketApiController{
 
+    //overrride da função já existente mas sem as verificações de ip
     function requireApiKey() {
         // Require a valid API key sent as X-API-Key HTTP header
         // see getApiKey method.
@@ -18,6 +18,7 @@ class TicketApiControllerProjeto extends TicketApiController{
         return $key;
     }
 
+    //overrride da função já existente mas sem as verificações de ip
     function getKey(){
         if (!$this->key
                 && ($key=$this->getApiKey()))
@@ -26,6 +27,8 @@ class TicketApiControllerProjeto extends TicketApiController{
         return $this->key;
     }
 
+    //TEMP
+    //função para criar a tabela nova, é uma função de teste, depois iremos ter um ficheiro sql com toda a nova informação sobre as tabelas
     function createKeyTable() {
         $sql = "select count(*) from information_schema.tables where
             table_schema='information_schema' and table_name =
@@ -62,11 +65,13 @@ class TicketApiControllerProjeto extends TicketApiController{
         return true;
     }
 
-    //endpoint para adicionar tabelas para testar
+    //TEMP
+    //endpoint para adicionar novas tabelas e linhas enquanto não é criado um ficheiro sql para isso
     function createTables(){
         $this->createKeyTable();
     }
 
+    //TEMP
     //funcao para fazer debug
     function debugToFile($erro){
         $file = "debug.txt";
@@ -74,21 +79,27 @@ class TicketApiControllerProjeto extends TicketApiController{
         file_put_contents($file, $text, FILE_APPEND | LOCK_EX);
     }
     
+    //função chamada no endpoint/url requestApiKey
     function requestApiKey($format){
+        //trata a informação do json
         $data = $this->getRequest($format);
 
-        //validacao do staff
+        //validacao do admin (password corresponde ao username e se é admin) e se existe o staff que vai receber a nova api key
         $staff = Staff::lookup($data['staffUsername']);
         $admin = Staff::lookup($data['adminUsername']);
-        if(!$staff || !$admin->check_passwd($data['adminPassword']) || !$staff->isAdmin()){
+        if(!$staff || !$admin->check_passwd($data['adminPassword']) || !$admin->isAdmin()){
             return false;
         }
         
+        //id do staff é passado para a variavel $data (no json é passado o nome do user, não o id)
         $data['idStaff'] = $staff->getId();
 
+        //adiciona uma api key nova ao staff definido e retorna o id da api key se funcionar corretamente
         $id = ApiProjeto::add($data, $errors);
+        //cria um objeto key com o id recebido
         $key = ApiProjeto::lookup($id);
 
+        //se não existir o objeto key é porque algum erro aconteceu e não foi possivel criar a key nova, se existir respoinde com a api key nova
         $this->debugToFile($key->getKey());
         if ($key)
             $this->response(201, $key->getKey());
@@ -96,6 +107,7 @@ class TicketApiControllerProjeto extends TicketApiController{
             $this->exerr(500, _S("unknown error"));
     }
 
+    //overrride da função já existente mas verifica a api key com a nova tabela
     function create($format) {
 
         if (!($key=$this->requireApiKey()) || !$key->canCreateTickets())
@@ -112,7 +124,7 @@ class TicketApiControllerProjeto extends TicketApiController{
     }
 
 
-
+    //função chamada no endpoint/url close, fecha um ticket, igual ao open mas verifica se pode fechar
     function close($format) {
         
         if (!($key=$this->requireApiKey()) || !$key->canCloseTickets() )
@@ -129,48 +141,48 @@ class TicketApiControllerProjeto extends TicketApiController{
     }
 
     function closeTicket($data, $key, $source='API'){
-        
+        //variavel global que indica o staff que esta a fazer o pedido da api
         global $thisstaff;
 
+        //cria objetos baseados na informação passada no json
         $number = $data['ticketNumber'];
         $ticket = Ticket::lookup(array('number'=>$number));      
-        
         $staff = Staff::lookup($key->ht['id_staff']);
         
-        // como fazer o comentário
         $comments = $data['comments'];
 
-        //vai buscar o id 3 ->fechar
+        //vai buscar o id 3 ->fechar atraves do STATE_CLOSE, ver api.config.php
         $status = TicketStatus::lookup(STATE_CLOSE);
         
         $thisstaff = $staff;
+        //altera o status do ticket
         if($ticket->setStatus(status:$status,comments:$comments)){
             return $ticket;
         }
-        //adicionar tabela para saber a source que fechou
+        //adicionar tabela para saber a source que fechou talvez
 
     }
 
+    //TODO
     function reopen($format){
 
     }
 
+    //TODO
     function reopenTicket($data, $source = 'API') {
         
     }
 
-
+    //TODO
     function suspend($format) {
         
 
     }
-
+    //TODO
     /* SuspendTicket(data,api) */
     function suspendTicket($data, $source = 'API') {
 
     }
-
-    /* Fim de Adicionamento */
 }
 
 ?>
