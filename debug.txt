@@ -1,0 +1,31 @@
+^/open/tickets\.(?P<format>xml|json|email)$
+^/close/tickets\.(?P<format>xml|json|email)$
+^/suspend/tickets\.(?P<format>xml|json|email)$
+^/requestApiKey/tickets\.(?P<format>xml|json|email)$
+^/auth/ext$
+^/tickets\.(?P<format>xml|json|email)$
+^cron$
+^/tasks/
+^/auth/ext$
+
+
+Array
+Array
+Array
+Array
+
+
+/workspace-php/upload/include/plugins/api/api.projeto.php:TicketApiControllerProjeto
+/workspace-php/upload/include/plugins/api/api.projeto.php:TicketApiControllerProjeto
+/workspace-php/upload/include/plugins/api/api.projeto.php:TicketApiControllerProjeto
+/workspace-php/upload/include/plugins/api/api.projeto.php:TicketApiControllerProjeto
+
+
+create
+close
+suspend
+requestApiKey^/api
+177033393E6F4B5355C90134094A59AD
+create
+key aceita
+criou ticket
