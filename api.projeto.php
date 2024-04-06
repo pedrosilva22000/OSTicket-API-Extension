@@ -74,7 +74,7 @@ class TicketApiControllerProjeto extends TicketApiController{
     //TEMP
     //funcao para fazer debug
     function debugToFile($erro){
-        $file = "debug.txt";
+        $file = INCLUDE_DIR."plugins/api/debug.txt";
         $text =  $erro."\n";
         file_put_contents($file, $text, FILE_APPEND | LOCK_EX);
     }
@@ -109,13 +109,13 @@ class TicketApiControllerProjeto extends TicketApiController{
 
     //overrride da função já existente mas verifica a api key com a nova tabela
     function create($format) {
-
+        $this->debugToFile('create');
         if (!($key=$this->requireApiKey()) || !$key->canCreateTickets())
             return $this->exerr(401, __('API key not authorized'));
-
+        $this->debugToFile('key aceita');
         $ticket = null;
         $ticket = $this->createTicket($this->getRequest($format));
-        
+        $this->debugToFile('criou ticket');
         if ($ticket)
             $this->response(201, $ticket->getNumber());
         else
