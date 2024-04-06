@@ -4,7 +4,7 @@ require_once 'util/table.installer.php';
 require_once 'config.php';
 
 include 'api.config.php';
-include INCLUDE_DIR.'class.dispatcher.php';
+// include INCLUDE_DIR.'class.dispatcher.php';
 
 class ProjetoPlugin extends Plugin {
 	var $config_class = 'ProjetoPluginConfig';
@@ -12,7 +12,7 @@ class ProjetoPlugin extends Plugin {
 	function bootstrap(){
         $this->debugToFile("bootstrap");
 		$this->createDBTables();
-        self::registerEndpoint();
+        // self::registerEndpoint();
 		if ($this->firstRun ()) {
 			
 			if (! $this->configureFirstRun ()) {
