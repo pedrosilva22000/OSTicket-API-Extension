@@ -1,4 +1,6 @@
-SET SQL_SAFE_UPDATES=0;
+
+INSERT into `%TABLE_PREFIX%event` (`name`) VALUES ('suspended');
+
 CREATE TABLE IF NOT EXISTS `%TABLE_PREFIX%api_key_nova` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `isactive` TINYINT(1) NOT NULL,
@@ -14,3 +16,7 @@ CREATE TABLE IF NOT EXISTS `%TABLE_PREFIX%api_key_nova` (
     `created` DATETIME
 ) ENGINE=$engine CHARSET=utf8;
 
+
+
+INSERT INTO `%TABLE_PREFIX%ticket_status` (`name`, `state`, `mode`, `flags`, `sort`, `properties`, `created`, `updated`)
+VALUES ('Suspend', 'suspend', 3, 0, 1, '{"description":"Tickets are still open but time isnt counting"}', NOW(), NOW());

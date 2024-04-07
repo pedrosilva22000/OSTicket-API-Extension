@@ -4,7 +4,6 @@ require_once 'class.plugin.php';
 require_once 'class.api.projeto.php';
 require_once 'util/table.installer.php';
 require_once 'config.php';
-
 include 'api.config.php';
 
 include INCLUDE_DIR . 'class.dispatcher.php';
@@ -17,14 +16,14 @@ class ProjetoPlugin extends Plugin
 
 	function bootstrap()
 	{
-        $config = $this->getConfig();
+		$config = $this->getConfig();
 		$username = $config->get('username');
 
 		self::registerEndpoints();
 
 		if ($this->firstRun()) {
-			
-			$this->createDBTables();
+
+			$this->setDataBase();
 			$this->populateFirst($username);
 		}
 	}
@@ -54,11 +53,12 @@ class ProjetoPlugin extends Plugin
 		return (db_num_rows($res) == 0);
 	}
 
-	function createDBTables()
+	function setDataBase()
 	{
 		$installer = new TableInstaller();
-		return $installer->install();
+		$installer->install(SQL_SCRIPTS_DIR);
 	}
+
 
 	private static function registerEndpoints()
 	{
