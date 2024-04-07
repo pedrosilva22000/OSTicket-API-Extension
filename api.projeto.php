@@ -1,8 +1,9 @@
 <?php
 
-include_once INCLUDE_DIR.'api.tickets.php';
+include_once 'api.tickets.projeto.php';
 include_once 'class.api.projeto.php';
 include 'api.config.php';
+include_once 'class.ticket.projeto.php';
 
 // include 'debugger.php';
 
@@ -160,60 +161,90 @@ class TicketApiControllerProjeto extends TicketApiController{
             $this->exerr(500, _S("unknown error"));
     }
 
+    function debugToFile($erro){
+        $file = INCLUDE_DIR."plugins/api/debug.txt";
+        $text =  $erro."\n";
+        file_put_contents($file, $text, FILE_APPEND | LOCK_EX);
+    }
+
     //WIP
     function editTicket($data, $key, $source = 'API') {
         $number = $data['ticketNumber'];
-        $ticket = Ticket::lookup(array('number'=>$number));
+        $ticket = TicketProjeto::lookup(array('number'=>$number));
         $comments = $data['comments'];
 
+        global $thisstaff;
+        $thisstaff = Staff::lookup($key->ht['id_staff']);
+        $thisstaffuser = $thisstaff->getUserName();
+
+        $msg = '';
+
+        if(!$data['staff'] && $data['staff']!=null && $ticket->getStaffId()!=0){
+            if($ticket->setStaffId(0)){
+                $msg = $msg . 'Staff unassign successfully \n';
+                $ticket->logEvent('assigned', array('staff' => 'unassign'), user:$thisstaffuser);
+            }
+            else{
+                $msg = $msg . 'Unable to unassign staff \n';
+            }
+        }
         if($data['staff']){
-            if($data['staff'] == '0'){
-                $ticket->setStaffId(0);
-            }
-            else{
-                $staff = Staff::lookup($data['staff']);
-                $ticket->assignToStaff($staff, $comments);
+            $staff = Staff::lookup($data['staff']);
+            if($ticket->getStaffId() != $staff->getId()){
+                $ticket->assignToStaff($staff, $comments, user:$thisstaffuser);
             }
         }
 
+        if(!$data['team'] && $data['team']!=null && $ticket->getTeamId()!=0){
+            $ticket->setTeamId(0);
+            $ticket->logEvent('assigned', array('team' => 'unassign'), user:$thisstaffuser);
+        }
         if($data['team']){
-            if($data['team'] == '0'){
-                $ticket->setTeamId(0);
-            }
-            else{
-                $team = Team::lookup($data['team']);
-                $ticket->assignToTeam($team, $comments);
+            $team = Team::lookup($data['team']);
+            if($ticket->getTeamId() != $data['team']){
+                $ticket->assignToTeam($team, $comments, user:$thisstaffuser);
             }
         }
 
-        // if($data['dept']){
-        //     $dept = Dept::lookup($data['dept']);
-        //     $ticket->setDeptId($dept->getId());
-        // }
+        if($data['dept']){
+            if($ticket->setDeptId($data['dept'])){
+                $ticket->logEvent('edited', array('dept' => $data['dept']), user:$thisstaffuser);
+            }
+        }
 
-        // if($data['sla']){
-        //     $sla = SLA::lookup($data['sla']);
-        //     $ticket->setSLAId($sla->getId());
-        // }
+        if(!$data['sla'] && $data['sla']!=null && $ticket->getSLAId()!=0){
+            $ticket->setSLAId(0);
+            $ticket->logEvent('edited', array('sla' => 'unassign'), user:$thisstaffuser);
+        }
+        if($data['sla'] && $ticket->getSLAId() != $data['sla']){
+            $ticket->setSLAId($data['sla']);
+            $ticket->logEvent('edited', array('sla' => $data['sla']), user:$thisstaffuser);
+        }
 
-        // if($data['topic']){
-        //     $topic = Topic::lookup($data['topic']);
-        //     $ticket->topic_id = $topic->getId();
-        // }
+        if($data['user']){
+            $user = User::lookup($data['user']);
+            $ticket->changeOwner($user);
+        }
 
-        // if($data['priority']){
-        //     $priority = Priority::lookup($data['priority']);
-        //     $ticket->priority = $priority;
-        // }
+        //AINDA NAO FUNCIONA
+
+        if($data['priority']){
+            if($ticket->setPriorityId($data['priority'])){
+                $ticket->logEvent('edited', array('priority' => $data['priority']), user:$thisstaffuser);
+                $this->debugToFile('priority');
+            }
+        }
+
+        if($data['topic']){
+            if($ticket->setTopicId($data['topic'])){
+                $ticket->logEvent('edited', array('topic' => $data['topic']), user:$thisstaffuser);
+                $this->debugToFile('topic');
+            }
+        }
 
         // if($data['duedate']){
         //     $duedate = $this->dateTimeMaker($data['duedate']);
         //     $ticket->duedate = $duedate;
-        // }
-
-        // if($data['user']){
-        //     $user = User::lookup($data['user']);
-        //     $ticket->changeOwner($user);
         // }
 
         return $ticket;
