@@ -21,12 +21,11 @@ class ProjetoPluginConfig extends PluginConfig {
             'title' => new SectionBreakField(array(
                 'label' => $__('Topics to fulfill for future use of the API'),
             )),
-            'option' => new BooleanField(array(
-                'label' => $__('Create an API Key'),
-                'default' => false,
-                'configuration' => array(
-                    'desc' => $__('Enable an API key for authentication')
-                )
+            'username' => new TextboxField(array(
+                'label' => __('Username'),
+                'required' => true,
+                'configuration' => array('size'=>40),
+                'hint' => __('Admin username to add API key.'),
             )),
         );
     }

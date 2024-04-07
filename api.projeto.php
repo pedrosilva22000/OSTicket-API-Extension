@@ -4,6 +4,8 @@ include_once INCLUDE_DIR.'api.tickets.php';
 include_once 'class.api.projeto.php';
 include 'api.config.php';
 
+include 'debugger.php';
+
 class TicketApiControllerProjeto extends TicketApiController{
 
     //overrride da função já existente mas sem as verificações de ip
@@ -25,14 +27,6 @@ class TicketApiControllerProjeto extends TicketApiController{
             $this->key = ApiProjeto::lookupByKeyPRJ($key);
 
         return $this->key;
-    }
-
-    //TEMP
-    //funcao para fazer debug
-    function debugToFile($erro){
-        $file = INCLUDE_DIR."plugins/api/debug.txt";
-        $text =  $erro."\n";
-        file_put_contents($file, $text, FILE_APPEND | LOCK_EX);
     }
     
     //função chamada no endpoint/url requestApiKey
@@ -168,50 +162,63 @@ class TicketApiControllerProjeto extends TicketApiController{
             $this->exerr(500, _S("unknown error"));
     }
 
+    //WIP
     function editTicket($data, $key, $source = 'API') {
         $number = $data['ticketNumber'];
         $ticket = Ticket::lookup(array('number'=>$number));
         $comments = $data['comments'];
 
         if($data['staff']){
-            $staff = Staff::lookup($data['staff']);
-            $ticket->setStaffId($staff->getId()); //assignToStaff($staff, $comments)
-        }
-
-        if($data['dept']){
-            $dept = Dept::lookup($data['dept']);
-            $ticket->setDeptId($dept->getId());
-        }
-
-        if($data['sla']){
-            $sla = SLA::lookup($data['sla']);
-            $ticket->setSLAId($sla->getId());
+            if($data['staff'] == '0'){
+                $ticket->setStaffId(0);
+            }
+            else{
+                $staff = Staff::lookup($data['staff']);
+                $ticket->assignToStaff($staff, $comments);
+            }
         }
 
         if($data['team']){
-            $team = Team::lookup($data['team']);
-            $ticket->setTeamId($team->getId());  //assignToTeam($team, $comments)
+            if($data['team'] == '0'){
+                $ticket->setTeamId(0);
+            }
+            else{
+                $team = Team::lookup($data['team']);
+                $ticket->assignToTeam($team, $comments);
+            }
         }
 
-        if($data['topic']){
-            $topic = Topic::lookup($data['topic']);
-            $ticket->topic_id = $topic->getId();
-        }
+        // if($data['dept']){
+        //     $dept = Dept::lookup($data['dept']);
+        //     $ticket->setDeptId($dept->getId());
+        // }
 
-        if($data['priority']){
-            $priority = Priority::lookup($data['priority']);
-            $ticket->priority = $priority;
-        }
+        // if($data['sla']){
+        //     $sla = SLA::lookup($data['sla']);
+        //     $ticket->setSLAId($sla->getId());
+        // }
 
-        if($data['duedate']){
-            $duedate = $this->dateTimeMaker($data['duedate']);
-            $ticket->duedate = $duedate;
-        }
+        // if($data['topic']){
+        //     $topic = Topic::lookup($data['topic']);
+        //     $ticket->topic_id = $topic->getId();
+        // }
 
-        if($data['user']){
-            $user = User::lookup($data['user']);
-            $ticket->changeOwner($user);
-        }
+        // if($data['priority']){
+        //     $priority = Priority::lookup($data['priority']);
+        //     $ticket->priority = $priority;
+        // }
+
+        // if($data['duedate']){
+        //     $duedate = $this->dateTimeMaker($data['duedate']);
+        //     $ticket->duedate = $duedate;
+        // }
+
+        // if($data['user']){
+        //     $user = User::lookup($data['user']);
+        //     $ticket->changeOwner($user);
+        // }
+
+        return $ticket;
     }
 
     private function dateTimeMaker($dateString){
