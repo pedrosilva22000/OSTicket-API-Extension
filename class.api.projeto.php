@@ -54,12 +54,13 @@ class ApiProjeto extends API{
         if($errors) return false;
 
         $sql=' updated=NOW() '
-            .',id_staff='.db_input($vars['idStaff']) //nao esquecer de alterar os nomes das colunaos quando fizermos a tabela a serio
+            .',id_staff='.db_input($vars['idStaff'])
             .',isactive='.db_input($vars['isActive'])
             .',can_create_tickets='.db_input($vars['canCreateTickets'])
             .',can_close_tickets='.db_input($vars['canCloseTickets'])
+            .',can_reopen_tickets='.db_input($vars['canReopenTickets'])
+            .',can_edit_tickets='.db_input($vars['canEditTickets'])
             .',can_suspend_tickets='.db_input($vars['canSuspendTickets'])
-            // .',can_exec_cron='.db_input($vars['can_exec_cron'])
             .',notes='.db_input(Format::sanitize($vars['notes']));
 
         if($id) {
@@ -94,6 +95,18 @@ class ApiProjeto extends API{
 
     function canCloseTickets(){
         return ($this->ht['can_close_tickets']);
+    }
+
+    function canReopenTickets(){
+        return ($this->ht['can_reopen_tickets']);
+    }
+
+    function canEditTickets(){
+        return ($this->ht['can_edit_tickets']);
+    }
+
+    function canSuspendTickets(){
+        return ($this->ht['can_suspend_tickets']);
     }
 }
 

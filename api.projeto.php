@@ -28,50 +28,6 @@ class TicketApiControllerProjeto extends TicketApiController{
     }
 
     //TEMP
-    //função para criar a tabela nova, é uma função de teste, depois iremos ter um ficheiro sql com toda a nova informação sobre as tabelas
-    function createKeyTable() {
-        $sql = "select count(*) from information_schema.tables where
-            table_schema='information_schema' and table_name =
-            'INNODB_FT_CONFIG'";
-        $mysql56 = db_result(db_query($sql));
-
-        $sql = "show status like 'wsrep_local_state'";
-        $galera = db_result(db_query($sql));
-
-        if ($galera && !$mysql56)
-            throw new Exception('Galera cannot be used with MyISAM tables. Upgrade to MariaDB 10 / MySQL 5.6 is required');
-        $engine = $galera ? 'InnodB' : ($mysql56 ? '' : 'MyISAM');
-        if ($engine)
-            $engine = 'ENGINE='.$engine;
-            
-        $sql = "CREATE TABLE IF NOT EXISTS ". TABLE_PREFIX.API_NEW_TABLE." (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            isactive TINYINT(1) NOT NULL,
-            id_staff VARCHAR(255) NOT NULL,
-            apikey VARCHAR(255) NOT NULL,
-            can_create_tickets TINYINT(1) NOT NULL,
-            can_close_tickets TINYINT(1) NOT NULL,
-            can_suspend_tickets TINYINT(1) NOT NULL,
-            notes TEXT,
-            updated DATETIME,
-            created DATETIME)
-            $engine CHARSET=utf8";
-
-        if (!db_query($sql))
-            return false;
-
-        $config = new MySqlSearchConfig();
-        $config->set('reindex', 1);
-        return true;
-    }
-
-    //TEMP
-    //endpoint para adicionar novas tabelas e linhas enquanto não é criado um ficheiro sql para isso
-    function createTables(){
-        $this->createKeyTable();
-    }
-
-    //TEMP
     //funcao para fazer debug
     function debugToFile($erro){
         $file = INCLUDE_DIR."plugins/api/debug.txt";
@@ -85,8 +41,8 @@ class TicketApiControllerProjeto extends TicketApiController{
         $data = $this->getRequest($format);
 
         //validacao do admin (password corresponde ao username e se é admin) e se existe o staff que vai receber a nova api key
-        $staff = Staff::lookup($data['staffUsername']);
-        $admin = Staff::lookup($data['adminUsername']);
+        $staff = Staff::lookup($data['staff']);
+        $admin = Staff::lookup($data['admin']);
         if(!$staff || !$admin->check_passwd($data['adminPassword']) || !$admin->isAdmin()){
             return false;
         }
@@ -100,7 +56,6 @@ class TicketApiControllerProjeto extends TicketApiController{
         $key = ApiProjeto::lookup($id);
 
         //se não existir o objeto key é porque algum erro aconteceu e não foi possivel criar a key nova, se existir respoinde com a api key nova
-        $this->debugToFile($key->getKey());
         if ($key)
             $this->response(201, $key->getKey());
         else
@@ -109,13 +64,13 @@ class TicketApiControllerProjeto extends TicketApiController{
 
     //overrride da função já existente mas verifica a api key com a nova tabela
     function create($format) {
-        $this->debugToFile('create');
+
         if (!($key=$this->requireApiKey()) || !$key->canCreateTickets())
             return $this->exerr(401, __('API key not authorized'));
-        $this->debugToFile('key aceita');
+
         $ticket = null;
         $ticket = $this->createTicket($this->getRequest($format));
-        $this->debugToFile('criou ticket');
+
         if ($ticket)
             $this->response(201, $ticket->getNumber());
         else
@@ -126,7 +81,7 @@ class TicketApiControllerProjeto extends TicketApiController{
 
     //função chamada no endpoint/url close, fecha um ticket, igual ao open mas verifica se pode fechar
     function close($format) {
-        
+
         if (!($key=$this->requireApiKey()) || !$key->canCloseTickets() )
             return $this->exerr(401, __('API key not authorized'));
 
@@ -146,7 +101,7 @@ class TicketApiControllerProjeto extends TicketApiController{
 
         //cria objetos baseados na informação passada no json
         $number = $data['ticketNumber'];
-        $ticket = Ticket::lookup(array('number'=>$number));      
+        $ticket = Ticket::lookup(array('number'=>$number));
         $staff = Staff::lookup($key->ht['id_staff']);
         
         $comments = $data['comments'];
@@ -163,25 +118,139 @@ class TicketApiControllerProjeto extends TicketApiController{
 
     }
 
-    //TODO
     function reopen($format){
+        if (!($key=$this->requireApiKey()) || !$key->canReopenTickets() )
+            return $this->exerr(401, __('API key not authorized'));
 
+        $ticket = null;
+            
+        $ticket = $this->reopenTicket($this->getRequest($format),$key);
+
+        if ($ticket)
+            $this->response(201, $ticket->getNumber());
+        else
+            $this->exerr(500, _S("unknown error"));
     }
 
-    //TODO
-    function reopenTicket($data, $source = 'API') {
+    function reopenTicket($data, $key, $source = 'API') {
+        //variavel global que indica o staff que esta a fazer o pedido da api
+        global $thisstaff;
+
+        //cria objetos baseados na informação passada no json
+        $number = $data['ticketNumber'];
+        $ticket = Ticket::lookup(array('number'=>$number));      
+        $staff = Staff::lookup($key->ht['id_staff']);
         
+        $comments = $data['comments'];
+
+        //vai buscar o id 3 ->fechar atraves do STATE_CLOSE, ver api.config.php
+        $status = TicketStatus::lookup(STATE_OPEN);
+        
+        $thisstaff = $staff;
+        //altera o status do ticket
+        if($ticket->setStatus(status:$status,comments:$comments)){
+            return $ticket;
+        }
+        //adicionar tabela para saber a source que fechou talvez
     }
 
-    //TODO
+    function edit($format) {
+        if (!($key=$this->requireApiKey()) || !$key->canEditTickets() )
+            return $this->exerr(401, __('API key not authorized'));
+
+        $ticket = null;
+            
+        $ticket = $this->editTicket($this->getRequest($format),$key);
+
+        if ($ticket)
+            $this->response(201, $ticket->getNumber());
+        else
+            $this->exerr(500, _S("unknown error"));
+    }
+
+    function editTicket($data, $key, $source = 'API') {
+        $number = $data['ticketNumber'];
+        $ticket = Ticket::lookup(array('number'=>$number));
+        $comments = $data['comments'];
+
+        if($data['staff']){
+            $staff = Staff::lookup($data['staff']);
+            $ticket->setStaffId($staff->getId()); //assignToStaff($staff, $comments)
+        }
+
+        if($data['dept']){
+            $dept = Dept::lookup($data['dept']);
+            $ticket->setDeptId($dept->getId());
+        }
+
+        if($data['sla']){
+            $sla = SLA::lookup($data['sla']);
+            $ticket->setSLAId($sla->getId());
+        }
+
+        if($data['team']){
+            $team = Team::lookup($data['team']);
+            $ticket->setTeamId($team->getId());  //assignToTeam($team, $comments)
+        }
+
+        if($data['topic']){
+            $topic = Topic::lookup($data['topic']);
+            $ticket->topic_id = $topic->getId();
+        }
+
+        if($data['priority']){
+            $priority = Priority::lookup($data['priority']);
+            $ticket->priority = $priority;
+        }
+
+        if($data['duedate']){
+            $duedate = $this->dateTimeMaker($data['duedate']);
+            $ticket->duedate = $duedate;
+        }
+
+        if($data['user']){
+            $user = User::lookup($data['user']);
+            $ticket->changeOwner($user);
+        }
+    }
+
+    private function dateTimeMaker($dateString){
+        $pattern = "/^(0?[1-9]|1[0-2])\/(0?[1-9]|[12][0-9]|3[01])\/\d{2} \d{1,2}:\d{2} (AM|PM)$/";
+
+        if (preg_match($pattern, $dateString)) {
+            return false;
+        }
+
+        list($month, $day, $shortYear, $time) = sscanf($dateString, "%d/%d/%d %s");
+        list($hour, $minute) = sscanf($time, "%d:%d");
+
+        $fullYear = $shortYear < 50 ? $shortYear + 2000 : $shortYear + 1900;
+
+        $dateTime = new DateTime();
+        $dateTime->setDate($fullYear, $month, $day);
+        $dateTime->setTime($hour, $minute);
+
+        return $dateTime;
+    }
+
     function suspend($format) {
-        
+        if (!($key=$this->requireApiKey()) || !$key->canSuspendTickets() )
+            return $this->exerr(401, __('API key not authorized'));
+
+        $ticket = null;
+            
+        $ticket = $this->suspendTicket($this->getRequest($format),$key);
+
+        if ($ticket)
+            $this->response(201, $ticket->getNumber());
+        else
+            $this->exerr(500, _S("unknown error"));
 
     }
-    //TODO
-    /* SuspendTicket(data,api) */
-    function suspendTicket($data, $source = 'API') {
 
+    /* SuspendTicket(data,api) */
+    function suspendTicket($data, $key, $source = 'API') {
+        //TODO
     }
 }
 

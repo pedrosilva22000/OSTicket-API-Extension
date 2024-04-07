@@ -14,8 +14,7 @@ class ProjetoPlugin extends Plugin {
 	var $config_class = 'ProjetoPluginConfig';
 
 	function bootstrap(){
-        
-		$this->createDBTables();
+        self::registerEndpoints();
 
 		if ($this->firstRun ()) {
 			
@@ -26,7 +25,7 @@ class ProjetoPlugin extends Plugin {
 		$this->getConfig();
 	}
 
-    function debugToFile($erro){
+    static function debugToFile($erro){
         $file = INCLUDE_DIR."plugins/api/debug.txt";
         $text =  $erro."\n";
         file_put_contents($file, $text, FILE_APPEND | LOCK_EX);
@@ -43,6 +42,10 @@ class ProjetoPlugin extends Plugin {
 			echo "First run configuration error.  " . "Unable to create database tables!";
 			return false;
 		}
+
+        global $thisstaff;
+        $data['idStaff'] = $thisstaff->getId();
+        
 		return true;
 	}
 
@@ -50,46 +53,45 @@ class ProjetoPlugin extends Plugin {
 		$installer = new TableInstaller ();
 		return $installer->install ();
 	}
-
-
-	 public function init() {
-        self::registerEndpointOpen();
-		self::registerEndpointClose();
-		self::registerEndpointSuspend();
-		self::registerEndpointRequest();
-
-     }
 	
-	 private static function registerEndpointOpen() {
-		Signal::connect('api', function ($dispatcher){
-            $dispatcher->append(
-                url_post("^/open/tickets\.(?P<format>xml|json|email)$", array(INCLUDE_DIR.'plugins/api/api.projeto.php:TicketApiControllerProjeto','create')),
-            );
-        });
-    }
+	 private static function registerEndpoints() {
 
-	private static function registerEndpointClose() {
-		Signal::connect('api', function ($dispatcher){
-            $dispatcher->append(
-				url_post("^/close/tickets\.(?P<format>xml|json|email)$", array(INCLUDE_DIR.'plugins/api/api.projeto.php:TicketApiControllerProjeto','close')),
-            );
-        });
-    }
+        $routes = array(
+            array(
+                'prefix' => "^/open/tickets",
+                'function' => 'create'
+            ),
+            array(
+                'prefix' => "^/close/tickets",
+                'function' => 'close'
+            ),
+            array(
+                'prefix' => "^/suspend/tickets",
+                'function' => 'suspend'
+            ),
+            array(
+                'prefix' => "^/requestApiKey/tickets",
+                'function' => 'requestApiKey'
+            ),
+            array(
+                'prefix' => "^/reopen/tickets",
+                'function' => 'reopen'
+            ),
+            array(
+                'prefix' => "^/edit/tickets",
+                'function' => 'edit'
+            )
+        );
 
-	private static function registerEndpointSuspend() {
-		Signal::connect('api', function ($dispatcher){
-            $dispatcher->append(
-                url_post("^/suspend/tickets\.(?P<format>xml|json|email)$", array(INCLUDE_DIR.'plugins/api/api.projeto.php:TicketApiControllerProjeto','suspend')),
-            );
-        });
+        foreach ($routes as $route) {
+            Signal::connect('api', function ($dispatcher) use ($route) {
+                $dispatcher->append(
+                    url_post(
+                        "{$route['prefix']}\.(?P<format>xml|json|email)$",
+                        array(INCLUDE_DIR.'plugins/api/api.projeto.php:TicketApiControllerProjeto', $route['function'])
+                    )
+                );
+            });
+        }
     }
-
-	private static function registerEndpointRequest() {
-		Signal::connect('api', function ($dispatcher){
-            $dispatcher->append(
-                url_post("^/requestApiKey/tickets\.(?P<format>xml|json|email)$", array(INCLUDE_DIR.'plugins/api/api.projeto.php:TicketApiControllerProjeto','requestApiKey'))
-            );
-        });
-    }
-    
 }

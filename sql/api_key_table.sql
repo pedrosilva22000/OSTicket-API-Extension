@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS `%TABLE_PREFIX%api_key_nova` (
     `apikey` VARCHAR(255) NOT NULL,
     `can_create_tickets` TINYINT(1) NOT NULL,
     `can_close_tickets` TINYINT(1) NOT NULL,
+    `can_reopen_tickets` TINYINT(1) NOT NULL,
+    `can_edit_tickets` TINYINT(1) NOT NULL,
     `can_suspend_tickets` TINYINT(1) NOT NULL,
     `notes` TEXT,
     `updated` DATETIME,
