@@ -42,8 +42,9 @@ class ProjetoPlugin extends Plugin
 				'canCreateTickets' => "1",
 				'canCloseTickets' => "1",
 				'canEditTickets' => "1",
+				'canReopenTickets' => "1",
 				'canSuspendTickets' => "1",
-				'notes' => "First Notes"
+				'notes' => "An API key automatically generated upon the plugin's first run."
 
 			);
 
@@ -58,17 +59,6 @@ class ProjetoPlugin extends Plugin
 		$sql = 'SHOW TABLES LIKE \'' . TABLE_PREFIX . API_NEW_TABLE . '\'';
 		$res = db_query($sql);
 		return (db_num_rows($res) == 0);
-	}
-
-	function configureFirstRun()
-	{
-		if (!$this->createDBTables()) {
-			echo "First run configuration error.  " . "Unable to create database tables!";
-			return false;
-		}
-
-
-		return true;
 	}
 
 	function createDBTables()
