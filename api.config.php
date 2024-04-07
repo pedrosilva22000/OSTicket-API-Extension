@@ -1,9 +1,7 @@
 <?php
-
 include 'ost-config.php';
 
-// Estados possíveis dos tickets para cada base de dados,
-// verificar valores na tabela ost_ticket_status
+
 
 define('STATE_OPEN',1);
 define('STATE_RESOLVE',2);
@@ -13,3 +11,13 @@ define('STATE_RESOLVED',5);
 
 //variavel que gurada o nome da nova tabela que guarda api keys associadas a users
 define('API_NEW_TABLE', 'api_key_nova');
+define('TICKET_STATUS', 'ticket_status');
+
+//directories to SQL files
+define('SQL_SCRIPTS_DIR', '/../sql/scripts.sql');
+
+
+
+
+
+?>
