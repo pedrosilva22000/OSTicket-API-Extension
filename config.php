@@ -25,7 +25,7 @@ class ProjetoPluginConfig extends PluginConfig {
                 'label' => __('Username'),
                 'required' => true,
                 'configuration' => array('size'=>40),
-                'hint' => __('Admin username to add API key.'),
+                'hint' => __('Admin username to add the first API key.'),
             )),
         );
     }

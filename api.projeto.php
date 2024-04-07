@@ -4,7 +4,7 @@ include_once INCLUDE_DIR.'api.tickets.php';
 include_once 'class.api.projeto.php';
 include 'api.config.php';
 
-include 'debugger.php';
+// include 'debugger.php';
 
 class TicketApiControllerProjeto extends TicketApiController{
 
@@ -80,7 +80,6 @@ class TicketApiControllerProjeto extends TicketApiController{
             return $this->exerr(401, __('API key not authorized'));
 
         $ticket = null;
-            
         $ticket = $this->closeTicket($this->getRequest($format),$key);
 
         if ($ticket)
@@ -117,7 +116,6 @@ class TicketApiControllerProjeto extends TicketApiController{
             return $this->exerr(401, __('API key not authorized'));
 
         $ticket = null;
-            
         $ticket = $this->reopenTicket($this->getRequest($format),$key);
 
         if ($ticket)
@@ -260,5 +258,3 @@ class TicketApiControllerProjeto extends TicketApiController{
         //TODO
     }
 }
-
-?>

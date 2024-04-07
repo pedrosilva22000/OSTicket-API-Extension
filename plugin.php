@@ -9,5 +9,3 @@ return array(
     'description' =>    'Adds extra functionality to OSTicket API.',
     'plugin' =>         'projeto.php:ProjetoPlugin'
 );
-
-?>

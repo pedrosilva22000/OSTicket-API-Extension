@@ -11,21 +11,19 @@ include INCLUDE_DIR . 'class.dispatcher.php';
 
 include 'debugger.php';
 
-/* include INCLUDE_DIR.'class.signal.php'; */
-/* require 'api.inc.php'; */
-
 class ProjetoPlugin extends Plugin
 {
 	var $config_class = 'ProjetoPluginConfig';
 
 	function bootstrap()
 	{
+        $config = $this->getConfig();
+		$username = $config->get('username');
+
 		self::registerEndpoints();
 
-        $config = $this->getConfig();
-        $username = $config->get('username');
-
 		if ($this->firstRun()) {
+			
 			$this->createDBTables();
 			$this->populateFirst($username);
 		}
@@ -33,25 +31,20 @@ class ProjetoPlugin extends Plugin
 
 	function populateFirst($username)
 	{
-		try {
-			$staff = Staff::lookup($username);
+		$staff = Staff::lookup($username);
 
-			$info = array(
-				'idStaff' => "{$staff->getId()}",
-				'isActive' => "1",
-				'canCreateTickets' => "1",
-				'canCloseTickets' => "1",
-				'canEditTickets' => "1",
-				'canReopenTickets' => "1",
-				'canSuspendTickets' => "1",
-				'notes' => "An API key automatically generated upon the plugin's first run."
+		$data = array(
+			'idStaff' => "{$staff->getId()}",
+			'isActive' => "1",
+			'canCreateTickets' => "1",
+			'canCloseTickets' => "1",
+			'canReopenTickets' => "1",
+			'canEditTickets' => "1",
+			'canSuspendTickets' => "1",
+			'notes' => "An API key automatically generated upon the plugin's first run."
+		);
 
-			);
-
-			ApiProjeto::add($info, $erros);
-		} catch (Exception $e) {
-			echo 'An error occurred: ' . $e->getMessage();
-		}
+		ApiProjeto::add($data, $erros);
 	}
 
 	function firstRun()

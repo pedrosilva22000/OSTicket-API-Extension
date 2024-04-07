@@ -109,5 +109,3 @@ class ApiProjeto extends API{
         return ($this->ht['can_suspend_tickets']);
     }
 }
-
-?>
