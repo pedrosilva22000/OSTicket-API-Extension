@@ -1,6 +1,8 @@
 <?php
 require_once 'class.staff.php';
+require_once 'class.staff.php';
 require_once 'class.plugin.php';
+require_once 'class.api.projeto.php';
 require_once 'class.api.projeto.php';
 require_once 'util/table.installer.php';
 require_once 'config.php';
@@ -14,6 +16,8 @@ include 'debugger.php';
 /* include INCLUDE_DIR.'class.signal.php'; */
 /* require 'api.inc.php'; */
 
+class ProjetoPlugin extends Plugin
+{
 class ProjetoPlugin extends Plugin
 {
 	var $config_class = 'ProjetoPluginConfig';
@@ -63,9 +67,13 @@ class ProjetoPlugin extends Plugin
 	function configureFirstRun()
 	{
 		if (!$this->createDBTables()) {
+	function configureFirstRun()
+	{
+		if (!$this->createDBTables()) {
 			echo "First run configuration error.  " . "Unable to create database tables!";
 			return false;
 		}
+
 
 
 		return true;
@@ -75,7 +83,14 @@ class ProjetoPlugin extends Plugin
 	{
 		$installer = new TableInstaller();
 		return $installer->install();
+	function createDBTables()
+	{
+		$installer = new TableInstaller();
+		return $installer->install();
 	}
+
+	private static function registerEndpoints()
+	{
 
 	private static function registerEndpoints()
 	{
