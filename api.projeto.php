@@ -183,7 +183,7 @@ class TicketApiControllerProjeto extends TicketApiController
     function editTicket($data, $key, $source = 'API')
     {
         $number = $data['ticketNumber'];
-        $ticket = TicketProjeto::lookup(array('number' => $number));
+        $ticket = Ticket::lookup(array('number' => $number));
         $comments = $data['comments'];
 
         global $thisstaff;
@@ -209,7 +209,7 @@ class TicketApiControllerProjeto extends TicketApiController
         }
 
         if (!$data['team'] && $data['team'] != null && $ticket->getTeamId() != 0) {
-            $ticket->setTeamId(0);
+            $ticket->setTeamId(0); //usar release() maybe
             $ticket->logEvent('assigned', array('team' => 'unassign'), user: $thisstaffuser);
         }
         if ($data['team']) {
@@ -224,18 +224,46 @@ class TicketApiControllerProjeto extends TicketApiController
             $ticket->changeOwner($user);
         } */
 
-        $field = $ticket->getField("priority");
-        
-        $post = array("3","","<p>testeasdasd<p>");
-        
-      
-        /* $field->setValue("High"); */
+        //source
+        //VERIFICAR SE A SOURCE INSERIDA NO JSON É POSSIVEL enum('Web', 'Email', 'Phone', 'API', 'Other')
+        // if ($data['source']){
+        //     $field = $ticket->getField("source");
+        //     $parsedComments = "<p>".$comments."<p>";
+        //     $post = array("","",$parsedComments); 
+        //     $field->setValue($data['source']); //fazer lookup do id para trnasformar nisto
+        //     $form = $field->getEditForm($post);
+        //     if($form->isValid()){
+        //         $ticket->updateField($form, $errors);
+        //     }
+        // }
+        //source
 
-        $form = $field->getEditForm($post);
-        /* Debugger::debugToFile($form->isValid()); */
-        $ticket->updateField($form, $errors);
+        //topic
+        // if ($data['topic']){
+        //     $field = $ticket->getField("topic");
+        //     $parsedComments = "<p>".$comments."<p>";
+        //     $post = array("","",$parsedComments);
+        //     $field->setValue($data['topic']);
+        //     $form = $field->getEditForm($post);
+        //     if($form->isValid()){
+        //         $ticket->updateField($form, $errors);
+        //     }
+        // }
+        //topic
 
-
+        //NAO FUNCIONA AINDA
+        // //priority
+        if ($data['priority']){
+            $field = $ticket->getField("priority");
+            $parsedComments = "<p>".$comments."<p>";
+            $post = array("","",$parsedComments);
+            $field->setValue(1);
+            $form = $field->getEditForm($post);
+            if($form->isValid()){
+                $ticket->updateField($form, $errors);
+            }
+        }
+        // //priority
 
 
 
@@ -279,26 +307,6 @@ class TicketApiControllerProjeto extends TicketApiController
         // } */
 
         return $ticket;
-    }
-
-    private function dateTimeMaker($dateString)
-    {
-        $pattern = "/^(0?[1-9]|1[0-2])\/(0?[1-9]|[12][0-9]|3[01])\/\d{2} \d{1,2}:\d{2} (AM|PM)$/";
-
-        if (preg_match($pattern, $dateString)) {
-            return false;
-        }
-
-        list($month, $day, $shortYear, $time) = sscanf($dateString, "%d/%d/%d %s");
-        list($hour, $minute) = sscanf($time, "%d:%d");
-
-        $fullYear = $shortYear < 50 ? $shortYear + 2000 : $shortYear + 1900;
-
-        $dateTime = new DateTime();
-        $dateTime->setDate($fullYear, $month, $day);
-        $dateTime->setTime($hour, $minute);
-
-        return $dateTime;
     }
 
     function suspend($format)
