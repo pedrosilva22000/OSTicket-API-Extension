@@ -1,7 +1,7 @@
 <?php
 
+include_once 'plugin.config.php';
 require_once 'class.setup.php';
-include 'api.config.php';
 
 class TableInstaller extends \SetupWizard {
     

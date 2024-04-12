@@ -1,9 +1,7 @@
 <?php
 
-include_once 'api.tickets.projeto.php';
+include_once 'plugin.config.php';
 include_once 'class.api.projeto.php';
-include 'api.config.php';
-include_once 'class.ticket.projeto.php';
 
 // include 'debugger.php';
 
@@ -230,7 +228,7 @@ class TicketApiControllerProjeto extends TicketApiController
         //     $field = $ticket->getField("source");
         //     $parsedComments = "<p>".$comments."<p>";
         //     $post = array("","",$parsedComments); 
-        //     $field->setValue($data['source']); //fazer lookup do id para trnasformar nisto
+        //     $field->setValue($data['source']);
         //     $form = $field->getEditForm($post);
         //     if($form->isValid()){
         //         $ticket->updateField($form, $errors);
@@ -239,7 +237,7 @@ class TicketApiControllerProjeto extends TicketApiController
         //source
 
         //topic
-        // if ($data['topic']){
+        // if ($data['topic'] && $data['topic'] != $ticket->getTopicId()){
         //     $field = $ticket->getField("topic");
         //     $parsedComments = "<p>".$comments."<p>";
         //     $post = array("","",$parsedComments);
@@ -251,55 +249,36 @@ class TicketApiControllerProjeto extends TicketApiController
         // }
         //topic
 
+        //sla
+        // if ($data['sla']){
+        //     $field = $ticket->getField("sla");
+        //     $parsedComments = "<p>".$comments."<p>";
+        //     $post = array("","",$parsedComments);
+        //     $field->setValue($data['sla']);
+        //     $form = $field->getEditForm($post);
+        //     if($form->isValid()){
+        //         $ticket->updateField($form, $errors);
+        //     }
+        // }
+        //sla
+
+        if($data['dept'] && $data['dept'] != $ticket->getDeptId()){
+            $this->transfer($data['dept'],$comments, $data['refer'], $ticket, $thisstaff);
+        }
+
         //NAO FUNCIONA AINDA
-        // //priority
-        if ($data['priority']){
-            $field = $ticket->getField("priority");
-            $parsedComments = "<p>".$comments."<p>";
-            $post = array("","",$parsedComments);
-            $field->setValue(1);
-            $form = $field->getEditForm($post);
-            if($form->isValid()){
-                $ticket->updateField($form, $errors);
-            }
-        }
-        // //priority
-
-
-
-        /* //não guarda no historico
-        if ($data['dept']) {
-            if ($ticket->setDeptId($data['dept'])) {
-                $ticket->logEvent('edited', array('dept' => $data['dept']), user: $thisstaffuser);
-            }
-        }
-
-        if (!$data['sla'] && $data['sla'] != null && $ticket->getSLAId() != 0) {
-            $ticket->setSLAId(0);
-            $ticket->logEvent('edited', array('sla' => 'unassign'), user: $thisstaffuser);
-        }
-        if ($data['sla'] && $ticket->getSLAId() != $data['sla']) {
-            $ticket->setSLAId($data['sla']);
-            $ticket->logEvent('edited', array('sla' => $data['sla']), user: $thisstaffuser);
-        }
-
-        
-
-        //AINDA NAO FUNCIONA
-
-        if ($data['priority']) {
-            if ($ticket->setPriorityId($data['priority'])) {
-                $ticket->logEvent('edited', array('priority' => $data['priority']), user: $thisstaffuser);
-                $this->debugToFile('priority');
-            }
-        }
-
-        if ($data['topic']) {
-            if ($ticket->setTopicId($data['topic'])) {
-                $ticket->logEvent('edited', array('topic' => $data['topic']), user: $thisstaffuser);
-                $this->debugToFile('topic');
-            }
-        }
+        // // //priority
+        // if ($data['priority']){
+        //     $field = $ticket->getField("priority");
+        //     $parsedComments = "<p>".$comments."<p>";
+        //     $post = array("","",$parsedComments);
+        //     $field->setValue(1);
+        //     $form = $field->getEditForm($post);
+        //     if($form->isValid()){
+        //         $ticket->updateField($form, $errors);
+        //     }
+        // }
+        // // //priority
 
         // if($data['duedate']){
         //     $duedate = $this->dateTimeMaker($data['duedate']);
@@ -307,6 +286,127 @@ class TicketApiControllerProjeto extends TicketApiController
         // } */
 
         return $ticket;
+    }
+
+    //talvez meter numa classe ticket extendida
+    function transfer($deptId, $deptComments, $refer, $ticket, $alert = true){
+        global $thisstaff, $cfg;
+
+        $cdept = $ticket->getDept();
+        $ticket->setDeptId($deptId);
+        $dept = $ticket->getDept();
+
+        // Make sure the new department allows assignment to the
+        // currently assigned agent (if any)
+        if (
+            $ticket->isAssigned()
+            && ($staff = $ticket->getStaff())
+            && $dept->assignMembersOnly()
+            && !$dept->isMember($staff)
+        ) {
+            $ticket->setStaffId(0);
+        }
+
+        if ($errors || !$ticket->save(true))
+            return false;
+
+        // Reopen ticket if closed
+        if ($ticket->isClosed())
+            $ticket->reopen();
+
+        // Set SLA of the new department
+        if (!$ticket->getSLAId() || $ticket->getSLA()->isTransient())
+            if (($slaId = $ticket->getDept()->getSLAId()))
+                $ticket->selectSLAId($slaId);
+
+        // Log transfer event
+        $ticket->logEvent('transferred', array('dept' => $dept->getName()));
+
+        if (($referral = $ticket->hasReferral($dept, ObjectModel::OBJECT_TYPE_DEPT)))
+            $referral->delete();
+
+        // Post internal note if any
+        $note = null;
+        $comments = $deptComments;
+        if ($comments) {
+            $title = sprintf(
+                __('%1$s transferred from %2$s to %3$s'),
+                __('Ticket'),
+                $cdept->getName(),
+                $dept->getName()
+            );
+
+            $_errors = array();
+            $note = $ticket->postNote(
+                array('note' => $comments, 'title' => $title),
+                $_errors,
+                $thisstaff,
+                false
+            );
+        }
+
+        if ($refer && $cdept)
+            $ticket->getThread()->refer($cdept);
+
+        //Send out alerts if enabled AND requested
+        if (!$alert || !$cfg->alertONTransfer() || !$dept->getNumMembersForAlerts())
+            return true; //no alerts!!
+
+        if (
+            ($email = $dept->getAlertEmail())
+            && ($tpl = $dept->getTemplate())
+            && ($msg = $tpl->getTransferAlertMsgTemplate())
+        ) {
+            $msg = $ticket->replaceVars(
+                $msg->asArray(),
+                array('comments' => $note, 'staff' => $thisstaff)
+            );
+            // Recipients
+            $recipients = array();
+            // Assigned staff or team... if any
+            if ($ticket->isAssigned() && $cfg->alertAssignedONTransfer()) {
+                if ($ticket->getStaffId())
+                    $recipients[] = $ticket->getStaff();
+                elseif (
+                    $ticket->getTeamId()
+                    && ($team = $ticket->getTeam())
+                    && ($members = $team->getMembersForAlerts())
+                ) {
+                    $recipients = array_merge($recipients, $members);
+                }
+            } elseif ($cfg->alertDeptMembersONTransfer() && !$ticket->isAssigned()) {
+                // Only alerts dept members if the ticket is NOT assigned.
+                foreach ($dept->getMembersForAlerts() as $M)
+                    $recipients[] = $M;
+            }
+
+            // Always alert dept manager??
+            if (
+                $cfg->alertDeptManagerONTransfer()
+                && $dept
+                && ($manager = $dept->getManager())
+            ) {
+                $recipients[] = $manager;
+            }
+            $sentlist = $options = array();
+            if ($note) {
+                $options += array('thread' => $note);
+            }
+            foreach ($recipients as $k => $staff) {
+                if (
+                    !is_object($staff)
+                    || !$staff->isAvailable()
+                    || in_array($staff->getEmail(), $sentlist)
+                ) {
+                    continue;
+                }
+                $alert = $ticket->replaceVars($msg, array('recipient' => $staff));
+                $email->sendAlert($staff, $alert['subj'], $alert['body'], null, $options);
+                $sentlist[] = $staff->getEmail();
+            }
+        }
+
+        return true;
     }
 
     function suspend($format)

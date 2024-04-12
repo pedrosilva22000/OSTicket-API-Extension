@@ -1,10 +1,10 @@
 <?php
+include_once 'plugin.config.php';
 require_once 'class.staff.php';
 require_once 'class.plugin.php';
-require_once 'class.api.projeto.php';
+require_once 'api/class.api.projeto.php';
 require_once 'util/table.installer.php';
 require_once 'config.php';
-include 'api.config.php';
 
 include INCLUDE_DIR . 'class.dispatcher.php';
 
@@ -56,7 +56,7 @@ class ProjetoPlugin extends Plugin
 	function setDataBase()
 	{
 		$installer = new TableInstaller();
-		$installer->install(SQL_SCRIPTS_DIR);
+		$installer->install(SQL_SCRIPTS_DIR."scripts.sql");
 	}
 
 
@@ -95,7 +95,7 @@ class ProjetoPlugin extends Plugin
 				$dispatcher->append(
 					url_post(
 						"^/{$route['prefix']}\.(?P<format>xml|json|email)$",
-						array(INCLUDE_DIR . 'plugins/api/api.projeto.php:TicketApiControllerProjeto', $route['function'])
+						array(PRJ_API_DIR.'api.projeto.php:TicketApiControllerProjeto', $route['function'])
 					)
 				);
 			});
