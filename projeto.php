@@ -14,6 +14,61 @@ class ProjetoPlugin extends Plugin
 {
 	var $config_class = 'ProjetoPluginConfig';
 
+	function isActive()
+	{
+		if (!parent::isActive()) {
+			$this->disable();
+		} else {
+			$this->enable();
+		}
+		return parent::isActive();
+	}
+
+	function enable()
+	{
+		if (parent::isActive()) {
+		}
+		return parent::enable();
+	}
+
+	function disable()
+	{
+		//exporta a informação para um ficheiro
+		$sql_query = 'SELECT * FROM `' . TABLE_PREFIX . API_NEW_TABLE . '`';
+
+		$res = db_query($sql_query);
+		/* db_query($sql_query); */
+
+		//vai buscar as linhas todas -> informação
+		$array = db_assoc_array($res, 2);
+
+		foreach ($array as $arr) {
+
+			foreach ($arr as $a) {
+				Debugger::debugToFile($a);
+			}
+		}
+
+
+
+		/* Debugger::debugToFile(db_query($sql_query)); */
+
+
+		$file = fopen(SQL_SCRIPTS_DIR . 'data.sql', 'w');
+
+		// Iterate over the result set
+		/* while ($row = db_fetch_row($res)) {
+            
+            fwrite($file, $row);
+        } */
+
+
+
+		/* fwrite($file,$res); */
+
+		fclose($file);
+	}
+
 	function bootstrap()
 	{
 		$config = $this->getConfig();
@@ -56,7 +111,7 @@ class ProjetoPlugin extends Plugin
 	function setDataBase()
 	{
 		$installer = new TableInstaller();
-		$installer->install(SQL_SCRIPTS_DIR."scripts.sql");
+		$installer->install(SQL_SCRIPTS_DIR . "scripts.sql");
 	}
 
 
@@ -95,7 +150,7 @@ class ProjetoPlugin extends Plugin
 				$dispatcher->append(
 					url_post(
 						"^/{$route['prefix']}\.(?P<format>xml|json|email)$",
-						array(PRJ_API_DIR.'api.projeto.php:TicketApiControllerProjeto', $route['function'])
+						array(PRJ_API_DIR . 'api.projeto.php:TicketApiControllerProjeto', $route['function'])
 					)
 				);
 			});
