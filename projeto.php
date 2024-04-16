@@ -16,19 +16,26 @@ class ProjetoPlugin extends Plugin
 
 	var $saveInfo = true; //valor defualt
 
+	//É preciso usar init para o plugin ver as configs mesmo quando esta desativado
+	function init(){
+		$config = $this->getConfig();
+		if(!($this->saveInfo = $config->get('save_info'))){
+			$this->saveInfo = false;
+		}
+		if ($this->firstRun()) {
+			$this->saveInfo = true; //mete a true por defualt a primeira vez porque o booleanfield esta bugado
+		}
+	}
+
 	function bootstrap()
 	{
 		$config = $this->getConfig();
 		$username = $config->get('username');
-		if(!($this->saveInfo = $config->get('save_info'))){
-			$this->saveInfo = false;
-		}
 
 		self::registerEndpoints();
 		if ($this->firstRun()) {
 			$this->setDataBase();
 			$this->addApiKeyRow($username);
-			$this->saveInfo = true; //mete a true por defualt a primeira vez porque o booleanfield esta bugado
 		}
 	}
 
@@ -78,13 +85,7 @@ class ProjetoPlugin extends Plugin
 			return;
 		}
 
-		//buscar o valor do config, nao fica guardado no bootstarp nesta funcao em especifico nao sei porque
-		if(!($this->saveInfo = $this->getConfig()->get('save_info'))){
-			$this->saveInfo = false;
-		}
-
-		//ve se o utilizador quer guardar a informacao das tabelas ou nao
-		//SO FUNCIONA SE A INSTANCIA FOR ATUALIZADA
+		//ve se o utilizador quer guardar a informacao das tabelas ou nao, true por defualt para alterar é necessario dar uodate a instancia
 		if($this->saveInfo){
 			//guarda a informacao das novas tabelas num ficheiro sql
 			//suporta varias tabelas, se criarmos novas é so adicionar o nome a array

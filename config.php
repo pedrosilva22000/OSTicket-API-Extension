@@ -28,7 +28,8 @@ class ProjetoPluginConfig extends PluginConfig {
                 'hint' => __('Admin username to add the first API key.'),
             )),
             'warning' => new SectionBreakField(array(
-                'label' => $__('ID YOU DONT WANT TO SAVE THE TABLES, PLEASE UPDATE THE INSTANCE AFTER CREATING IT!!!'),
+                'label' => $__('IF YOU DON\'T WANT TO SAVE THE TABLES, PLEASE UPDATE THE INSTANCE AFTER CREATING IT!!!
+                This is due to an error in OSTicket BooleanFields.'),
             )),
             'save_info' => new BooleanField(array(
                 'label' => __('Save New Tables Info'),
