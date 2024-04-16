@@ -14,8 +14,6 @@ class ProjetoPlugin extends Plugin
 {
 	var $config_class = 'ProjetoPluginConfig';
 
-	var $saveInfo = true; //valor defualt
-
 	function bootstrap()
 	{
 		$config = $this->getConfig();
@@ -175,25 +173,7 @@ class ProjetoPlugin extends Plugin
 	function setDataBase()
 	{
 		$installer = new TableInstaller();
-		$installer->runScript(INSTALL_SCRIPT);
-	}
-
-	function populateSavedData(){
-		$installer = new TableInstaller();
-		$installer->runScript(SAVED_DATA_SQL);
-	}
-
-	//PARA TESTES APAGAR DEPOIS
-	function debugToFile($erro)
-    {
-        $file = INCLUDE_DIR . "plugins/api/debug.txt";
-        $text =  $erro . "\n";
-        file_put_contents($file, $text, FILE_APPEND | LOCK_EX);
-    }
-
-	//Só suporta uma instancia (porque usa sempre as mesmas tabelas)
-	function isMultiInstance(){
-		return false;
+		$installer->install(SQL_SCRIPTS_DIR."scripts.sql");
 	}
 
 	private static function registerEndpoints()
@@ -231,7 +211,7 @@ class ProjetoPlugin extends Plugin
 				$dispatcher->append(
 					url_post(
 						"^/{$route['prefix']}\.(?P<format>xml|json|email)$",
-						array(PRJ_API_DIR.'api.projeto.php:TicketApiControllerProjeto', $route['function'])
+						array(PRJ_API_DIR . 'api.projeto.php:TicketApiControllerProjeto', $route['function'])
 					)
 				);
 			});
