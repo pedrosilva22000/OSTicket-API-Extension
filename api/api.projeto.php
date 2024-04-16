@@ -262,23 +262,19 @@ class TicketApiControllerProjeto extends TicketApiController
         // }
         //sla
 
-        if($data['dept'] && $data['dept'] != $ticket->getDeptId()){
-            $this->transfer($data['dept'],$comments, $data['refer'], $ticket, $thisstaff);
-        }
+        //dept
+        // if($data['dept'] && $data['dept'] != $ticket->getDeptId()){
+        //     $this->transfer($data['dept'],$comments, $data['refer'], $ticket, $thisstaff);
+        // }
+        //dept
 
         //NAO FUNCIONA AINDA
-        // // //priority
-        // if ($data['priority']){
-        //     $field = $ticket->getField("priority");
-        //     $parsedComments = "<p>".$comments."<p>";
-        //     $post = array("","",$parsedComments);
-        //     $field->setValue(1);
-        //     $form = $field->getEditForm($post);
-        //     if($form->isValid()){
-        //         $ticket->updateField($form, $errors);
-        //     }
-        // }
-        // // //priority
+        //priority
+        if ($data['priority'] && $data['priority'] != $ticket->getPriorityId()){
+            $this->updateField($data['priority'], $comments, $ticket, 22);
+        }
+
+        //priority
 
         // if($data['duedate']){
         //     $duedate = $this->dateTimeMaker($data['duedate']);
@@ -286,6 +282,111 @@ class TicketApiControllerProjeto extends TicketApiController
         // } */
 
         return $ticket;
+    }
+
+    function getChanges($new, $old) {
+        return ($old != $new) ? array($old, $new) : false;
+    }
+
+    function updateField($newId, $userComments, $ticket, $formId)
+    {
+        global $thisstaff, $cfg;
+
+        $field = DynamicFormField::lookup($formId);
+        $field = $ticket->getField('priority');
+        $oldId = $ticket->getPriorityId();
+        $old = array(Priority::lookup($oldId)->getDesc(),$oldId);
+        $new = array(Priority::lookup($newId)->getDesc(),$newId);
+
+        if($field->setValue(array(1,'Low'))){
+            $this->debugToFile('AYOOOOOOOOOO');
+        }
+        
+        $updateDuedate = false;
+
+        $changes = $this->getChanges($new, $old);
+        //$changes = $field->getChanges();
+        // if ($old){
+        if ($field->answer) {
+            if (!$field->isEditableToStaff()){
+                $errors = sprintf(
+                    __('%s can not be edited'),
+                    __($field->getLabel())
+                );}
+            elseif (!$field->save(true)){ //ESTES SAVE NAO ESTA A DAR????
+                $errors = __('Unable to update field');
+            } 
+
+            $changes['fields'] = array($field->getId() => $changes);
+
+        }else{ //IGONRAR ISTO POR ENQUANTO MAS NAO APAGAR (PROVAVELMENTE NAO FUNCIONA)
+            $val = $new;
+            $fid = $field->get('name');
+
+            // Convert duedate to DB timezone.
+            if ($fid == 'duedate') {
+                if (empty($val))
+                    $val = null;
+                elseif ($dt = Format::parseDateTime($val)) {
+                    // Make sure the due date is valid
+                    if (Misc::user2gmtime($val) <= Misc::user2gmtime())
+                        $errors['field'] = __('Due date must be in the future');
+                    else {
+                        $dt->setTimezone(new DateTimeZone($cfg->getDbTimezone()));
+                        $val = $dt->format('Y-m-d H:i:s');
+                    }
+                }
+            }
+
+            $changes = array();
+            $ticket->{$fid} = $val;
+            foreach ($ticket->dirty as $F => $old) {
+                switch ($F) {
+                    case 'sla_id':
+                    case 'duedate':
+                        $updateDuedate = true;
+                    case 'topic_id':
+                    case 'user_id':
+                    case 'source':
+                        $changes[$F] = array($old, $this->{$F});
+                }
+            }
+
+            if (!$errors && !$ticket->save())
+                $errors['field'] = __('Unable to update field');
+        }//IGONRAR ISTO POR ENQUANTO MAS NAO APAGAR^^(PROVAVELMENTE NAO FUNCIONA)^^^^
+
+        if ($errors)
+            return false;
+
+        // Record the changes
+        $ticket->logEvent('edited', $changes);
+
+        // Post internal note if any
+        $comments = $userComments;
+        if ($comments) {
+            $title = sprintf(__('%s updated'), __($field->getLabel()));
+            $_errors = array();
+            $ticket->postNote(
+                array('note' => $comments, 'title' => $title),
+                $_errors,
+                $thisstaff,
+                false
+            );
+        }
+
+        //EXTENDER A CLASSE TICKET PARA IR A TABELA ALTERAR O LASTUPDATE A MARTELADA
+        //PORQUE A VARIAVEL LASTUPDATE É PRIVADA E NAO HA METODO PARA A ALTERAR
+        //$this->lastupdate = SqlFunction::NOW();
+
+        if ($updateDuedate)
+            $ticket->updateEstDueDate();
+
+        $ticket->save();
+
+        Signal::send('model.updated', $ticket);
+
+        return true;
     }
 
     //talvez meter numa classe ticket extendida

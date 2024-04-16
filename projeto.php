@@ -14,23 +14,142 @@ class ProjetoPlugin extends Plugin
 {
 	var $config_class = 'ProjetoPluginConfig';
 
+	var $saveInfo = true; //valor defualt
+
 	function bootstrap()
 	{
 		$config = $this->getConfig();
 		$username = $config->get('username');
+		if(!($this->saveInfo = $config->get('save_info'))){
+			$this->saveInfo = false;
+		}
 
 		self::registerEndpoints();
-
 		if ($this->firstRun()) {
-
 			$this->setDataBase();
-			$this->populateFirst($username);
+			$this->addApiKeyRow($username);
+			$this->saveInfo = true; //mete a true por defualt a primeira vez
 		}
 	}
 
-	function populateFirst($username)
+	function isActive()
+	{
+		if (!parent::isActive()) {
+			$this->disable();
+		} else {
+			$this->enable();
+		}
+		return parent::isActive();
+	}
+
+	function enable()
+	{
+		if($this->firstRun() && !$this->fileIsEmpty(SAVED_DATA_SQL)){
+			$this->setDataBase();
+			$this->populateSavedData();
+		}
+		return parent::enable();
+	}
+
+	//verifica se existe um ficheir com os valores da tabvela guardados
+	function fileIsEmpty($filename){
+
+		if (file_exists($filename)) {
+
+			$handle = fopen($filename, "r");
+			$filesize = filesize($filename);
+			fclose($handle);
+	
+			//verifica se o ficheiro tem alguma informacao la dentro baseado no seu tamanho
+			if ($filesize > 0) {
+				return false; //nao esta vazio, logo vai correr o que esta la dentro quando o plugin é ativado
+			} else {
+				return true; //esta vazio, o plugin corre por defualt com uma api key nova vinda do config
+			}
+		} else {
+			return true; //o ficheiro nao existe
+		}
+	}
+
+	//ESTA FUNCAO NAO CORRE QUANDO O PLUGIN É DESATIVADO MAS SIM QUANDO É VERIFICADO SE ESTA ATIVO OU NAO QUE É DEPOIS DE ESTAR DESATIVADO
+	function disable()
+	{
+		if($this->firstRun()){
+			return;
+		}
+
+		//buscar o valor do config, nao fica guardado no bootstarp nesta funcao em especifico nao sei porque
+		if(!($this->saveInfo = $this->getConfig()->get('save_info'))){
+			$this->saveInfo = false;
+		}
+
+		//ve se o utilizador quer guardar a informacao das tabelas ou nao
+		//SO FUNCIONA SE A INSTANCIA FOR ATUALIZADA
+		if($this->saveInfo){
+			//guarda a informacao das novas tabelas num ficheiro sql
+			//suporta varias tabelas, se criarmos novas é so adicionar o nome a array
+			$tableNames = array(
+				TABLE_PREFIX . API_NEW_TABLE
+				//ADICIONAR NOVAS TABELAS AQUI
+			);
+			$this->storeData($tableNames);
+		}
+
+		//desisntala as tabelas e linhas novas da base de dados
+		$installer = new TableInstaller();
+		$installer->runScript(UNINSTALL_SCRIPT);
+	}
+
+	function storeData($tableNames){
+		//guarda os resultados de cada tabela numa array
+		$tablesArray = array();
+
+		foreach($tableNames as $tableName){
+			//exporta a informação para um ficheiro
+			$sql_query = 'SELECT * FROM `' . $tableName . '`';
+
+			$res = db_query($sql_query);
+			/* db_query($sql_query); */
+
+			//vai buscar as linhas todas -> informação
+			$array = db_assoc_array($res);
+
+			//guarda o resultado desta tabela na array de tabelas
+			$tablesArray[] = $array;
+
+			// foreach ($array as $arr) {
+			// 	foreach ($arr as $key => $a) {
+			// 		Debugger::debugToFile($key . ": " . $a);
+			// 	}
+			// }
+		}
+
+		//guarda os inserts todos no ficheiro sql
+		$file = fopen(SAVED_DATA_SQL, 'w');
+
+		foreach($tablesArray as $array){
+			foreach ($array as $arr) {
+				$columns = array_keys($arr);
+				$values = array_map(function ($value) {
+					return "'" . addslashes($value) . "'";
+				}, $arr);
+	
+				$insertSQL = "INSERT INTO `$tableName` (" . implode(", ", array_map(function($column) {
+					return "`$column`";
+				}, $columns)) . ")\n VALUES (" . implode(", ", $values) . ");\n\n";
+				
+	
+				fwrite($file, $insertSQL);
+			}
+		}
+
+		fclose($file);
+	}
+
+	function addApiKeyRow($username)
 	{
 		$staff = Staff::lookup($username);
+        // $staff = StaffAuthenticationBackend::getUser(); tentatica de meter o staff com login com api key nova sem usar o config
 
 		$data = array(
 			'idStaff' => "{$staff->getId()}",
@@ -56,9 +175,26 @@ class ProjetoPlugin extends Plugin
 	function setDataBase()
 	{
 		$installer = new TableInstaller();
-		$installer->install(SQL_SCRIPTS_DIR."scripts.sql");
+		$installer->runScript(INSTALL_SCRIPT);
 	}
 
+	function populateSavedData(){
+		$installer = new TableInstaller();
+		$installer->runScript(SAVED_DATA_SQL);
+	}
+
+	//PARA TESTES APAGAR DEPOIS
+	function debugToFile($erro)
+    {
+        $file = INCLUDE_DIR . "plugins/api/debug.txt";
+        $text =  $erro . "\n";
+        file_put_contents($file, $text, FILE_APPEND | LOCK_EX);
+    }
+
+	//Só suporta uma instancia (porque usa sempre as mesmas tabelas)
+	function isMultiInstance(){
+		return false;
+	}
 
 	private static function registerEndpoints()
 	{
@@ -100,5 +236,24 @@ class ProjetoPlugin extends Plugin
 				);
 			});
 		}
+	}
+
+	//PORQUE É QUE ISTO NAO FUNCIONA
+	//COISAS QUE ESTAVA A TESTAR PARA DESINSTALAR AS TAVELAS QUANDO SE APAGA O PLUGIN MAS NAO FUNCIONA POR ENQUANTO
+	function pre_uninstall(&$errors) {
+		$this->debugToFile('PRE_UNINSTALL');
+        return true;
+    }
+
+	function uninstall(&$errors) {
+		$this->debugToFile('UNINSTALL');
+		// $installer = new TableInstaller();
+		// $installer->runScript(SQL_SCRIPTS_DIR.UNINSTALL_SCRIPT);
+		parent::uninstall($errors);
+	}
+
+	function delete(){
+		$this->debugToFile('DELETEEEE');
+		// parent::delete();
 	}
 }

@@ -19,13 +19,25 @@ class ProjetoPluginConfig extends PluginConfig {
         list($__, $_N) = self::translate();
         return array(
             'title' => new SectionBreakField(array(
-                'label' => $__('Topics to fulfill for future use of the API'),
+                'label' => $__('OSTicket API Extension Configuration Option'),
             )),
             'username' => new TextboxField(array(
                 'label' => __('Username'),
                 'required' => true,
                 'configuration' => array('size'=>40),
                 'hint' => __('Admin username to add the first API key.'),
+            )),
+            'warning' => new SectionBreakField(array(
+                'label' => $__('ID YOU DONT WANT TO SAVE THE TABLES, PLEASE UPDATE THE INSTANCE AFTER CREATING IT!!!'),
+            )),
+            'save_info' => new BooleanField(array(
+                'label' => __('Save New Tables Info'),
+                'default' => true, //NAO SERVE DE NADA PORQUE O CONFIG NAO GUARDA A CHECKBOXES A PRIMEIRA VEZ SO 
+                //DEPOIS DE ATUALIZAR A INSTANCIA, ISTO É UM ERRO DO OSTICKET EM SI, por isso esta sempre false por defualt
+                'configuration' => array(
+                    'desc' => __('Saves all values inside the tables added by this plugin after deactivating it, 
+                    so when the plugin is activated again it has all the same data as before.')
+                )
             )),
         );
     }

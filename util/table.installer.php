@@ -5,9 +5,9 @@ require_once 'class.setup.php';
 
 class TableInstaller extends \SetupWizard {
     
-    function install($dir) {
+    function runScript($dir) {
 		
-		$schemaFile = __DIR__ . $dir ;
+		$schemaFile = $dir ;
 		$this->runJob ( $schemaFile );
 	}
 
@@ -20,11 +20,7 @@ class TableInstaller extends \SetupWizard {
 				return;
 			}
 		}
-		
 	}
-
-	
-
 }
 
 

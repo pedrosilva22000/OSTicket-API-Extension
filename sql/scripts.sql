@@ -19,4 +19,4 @@ CREATE TABLE IF NOT EXISTS `%TABLE_PREFIX%api_key_nova` (
 
 
 INSERT INTO `%TABLE_PREFIX%ticket_status` (`name`, `state`, `mode`, `flags`, `sort`, `properties`, `created`, `updated`)
-VALUES ('Suspend', 'suspend', 3, 0, 1, '{"description":"Tickets are still open but time isnt counting"}', NOW(), NOW());
+VALUES ('Suspended', 'open', 3, 0, 6, '{"description":"Tickets are still open but time isnt counting"}', NOW(), NOW());
