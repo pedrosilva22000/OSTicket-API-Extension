@@ -17,7 +17,7 @@ class ApiProjeto extends API{
         if(!$id && !($id=$this->getId()))
             return false;
 
-        $sql='SELECT * FROM '.TABLE_PREFIX.API_NEW_TABLE.' WHERE id='.db_input($id);
+        $sql='SELECT * FROM '.API_NEW_TABLE.' WHERE id='.db_input($id);
         if(!($res=db_query($sql)) || !db_num_rows($res))
             return false;
 
@@ -125,7 +125,7 @@ class ApiProjeto extends API{
 
     static function getIdByKeyPRJ($key) {
 
-        $sql='SELECT id FROM '.TABLE_PREFIX.API_NEW_TABLE.' WHERE apikey='.db_input($key);
+        $sql='SELECT id FROM '.API_NEW_TABLE.' WHERE apikey='.db_input($key);
 
         if(($res=db_query($sql)) && db_num_rows($res))
             list($id) = db_fetch_row($res);
@@ -155,7 +155,7 @@ class ApiProjeto extends API{
             .',notes='.db_input(Format::sanitize($vars['notes']));
 
         if($id) {
-            $sql='UPDATE '.TABLE_PREFIX.API_NEW_TABLE.' SET '.$sql.' WHERE id='.db_input($id);
+            $sql='UPDATE '.API_NEW_TABLE.' SET '.$sql.' WHERE id='.db_input($id);
             if(db_query($sql))
                 return true;
 
@@ -164,11 +164,11 @@ class ApiProjeto extends API{
 
         } else {
             //query que desativa api keys antigas do staff que está a receber uma key nova, se existirem
-            $updateSql='UPDATE '.TABLE_PREFIX.API_NEW_TABLE.' SET isactive = 0 WHERE id_staff='.db_input($vars['idStaff']);
+            $updateSql='UPDATE '.API_NEW_TABLE.' SET isactive = 0 WHERE id_staff='.db_input($vars['idStaff']);
             if(!db_query($updateSql))
                 return false;
 
-            $sql='INSERT INTO '.TABLE_PREFIX.API_NEW_TABLE.' SET '.$sql
+            $sql='INSERT INTO '.API_NEW_TABLE.' SET '.$sql
                 .',created=NOW() '
                 .',apikey='.db_input(strtoupper(md5(time().md5(Misc::randCode(16)))));
 

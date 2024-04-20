@@ -88,8 +88,8 @@ class ProjetoPlugin extends Plugin
 			//guarda a informacao das novas tabelas num ficheiro sql
 			//suporta varias tabelas, se criarmos novas é so adicionar o nome a array
 			$tableNames = array(
-				TABLE_PREFIX . API_NEW_TABLE,
-				TABLE_PREFIX . SUSPEND_NEW_TABLE
+				API_NEW_TABLE,
+				SUSPEND_NEW_TABLE
 				//ADICIONAR NOVAS TABELAS AQUI
 			);
 			$this->storeData($tableNames);
@@ -167,7 +167,7 @@ class ProjetoPlugin extends Plugin
 
 	function firstRun()
 	{
-		$sql = 'SHOW TABLES LIKE \'' . TABLE_PREFIX . API_NEW_TABLE . '\'';
+		$sql = 'SHOW TABLES LIKE \'' . API_NEW_TABLE . '\'';
 		$res = db_query($sql);
 		return (db_num_rows($res) == 0);
 	}

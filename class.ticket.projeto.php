@@ -54,28 +54,9 @@ class TicketProjeto extends Ticket{
             $changes['fields'] = array(22 => $changes);
         }
         
-            //se nao existir oldvalue, existirem erros e nao der save retorna falso
+        //se nao existir oldvalue, existirem erros e nao der save retorna falso
         if(!$oldValue || $errors || !$this->save(true)){
             return false;
-        }
-
-        //transforma data inserida
-        if($field == 'duedate'){
-            $val = $newValue;
-
-            if (empty($val))
-                $val = null;
-            elseif ($dt = Format::parseDateTime($val)) {
-                // Make sure the due date is valid
-                if (Misc::user2gmtime($val) <= Misc::user2gmtime())
-                    $errors['field'] = __('Due date must be in the future');
-                else {
-                    $dt->setTimezone(new DateTimeZone($cfg->getDbTimezone()));
-                    $val = $dt->format('Y-m-d H:i:s');
-                }
-            }
-
-            $this->updateEstDueDate();
         }
 
         // Post internal note if any
@@ -243,16 +224,16 @@ class TicketProjeto extends Ticket{
 
             
 
-            $query_update = 'UPDATE ' . TABLE_PREFIX . SUSPEND_NEW_TABLE . ' SET date_end_suspension=NOW()'
+            $query_update = 'UPDATE ' . SUSPEND_NEW_TABLE . ' SET date_end_suspension=NOW()'
                 . 'WHERE number_ticket=' . $this->getNumber()
-                . ' AND id=(SELECT MAX(id) FROM ' . TABLE_PREFIX . SUSPEND_NEW_TABLE . ' WHERE number_ticket =' . $this->getNumber() . ')';
+                . ' AND id=(SELECT MAX(id) FROM ' . SUSPEND_NEW_TABLE . ' WHERE number_ticket =' . $this->getNumber() . ')';
 
             if (!db_query($query_update))
                 return false;
 
 
             $query_time = 'SELECT TIMEDIFF(date_end_suspension,date_of_suspension) AS suspension_duration FROM ost_suspended_ticket WHERE number_ticket =' . $this->getNumber()
-                . '  AND id=(SELECT MAX(id) FROM ' . TABLE_PREFIX . SUSPEND_NEW_TABLE . ' WHERE number_ticket =' . $this->getNumber() . ')';
+                . '  AND id=(SELECT MAX(id) FROM ' . SUSPEND_NEW_TABLE . ' WHERE number_ticket =' . $this->getNumber() . ')';
 
             $res = db_query($query_time);
             if (!$res)
@@ -274,14 +255,19 @@ class TicketProjeto extends Ticket{
             $finalDatetimeFormatted = $finalDatetime->format('Y-m-d H:i:s');
 
             $this->est_duedate = $finalDatetimeFormatted;
-            $this->duedate = $finalDatetimeFormatted;
+            // $this->duedate = $finalDatetimeFormatted;
 
 
 
             $this->status = TicketStatus::lookup(STATE_OPEN);
             $status =  STATE_OPEN;
 
-
+            //TIREI POR ENQUANTO PARA FICAR IGUAL AO DELES
+            // $ecb = function ($t) {
+            //     $t->logEvent('reopened', array('status' => STATE_OPEN));
+            //     // Set new sla duedate if any
+            //     $t->updateEstDueDate();
+            // };
         }
 
 
@@ -290,7 +276,7 @@ class TicketProjeto extends Ticket{
 
             if ($errors) return false;
 
-            $query = 'INSERT INTO ' . TABLE_PREFIX . SUSPEND_NEW_TABLE . ' SET '
+            $query = 'INSERT INTO ' . SUSPEND_NEW_TABLE . ' SET '
                 . 'number_ticket=' . $this->getNumber()
                 . ', date_of_suspension=NOW()';
             $query .= ', date_end_suspension=NULL';
@@ -304,6 +290,13 @@ class TicketProjeto extends Ticket{
 
             $this->status = TicketStatus::lookup(STATE_SUSPENDED);
             $status =  STATE_SUSPENDED;
+
+            //TIREI POR ENQUANTO PARA FICAR IGUAL AO DELES
+            // $ecb = function ($t) {
+            //     $t->logEvent('suspended', array('status' => STATE_SUSPENDED));
+            //     // Set new sla duedate if any
+            //     $t->updateEstDueDate();
+            // };
         }
 
         if (!$this->save(true))
@@ -329,7 +322,7 @@ class TicketProjeto extends Ticket{
             $ecb($this);
         elseif ($hadStatus)
             // Don't log the initial status change
-            $this->logEvent('suspended', array('status' => $status));
+            $this->logEvent('edited', array('status' => $status));
 
         return true;
     }
@@ -337,5 +330,4 @@ class TicketProjeto extends Ticket{
     static function getSources(){
         return Ticket::$sources;
     }
-
 }

@@ -273,21 +273,34 @@ class TicketApiControllerProjeto extends TicketApiController
         //NAO FUNCIONA AINDA
 
         //priority
-        if ($data['priority'] && $data['priority'] != $ticket->getPriorityId()){
-            $ticket->editFields('priority', $data['priority'], $comments);
-        }
+        // if ($data['priority'] && $data['priority'] != $ticket->getPriorityId()){
+        //     $ticket->editFields('priority', $data['priority'], $comments);
+        // }
         //priority
 
-        // if($data['duedate']){
-        //     $duedate = $this->dateTimeMaker($data['duedate']);
-        //     $ticket->duedate = $duedate;
-        // } */
+        //duedate
+
+        if($data['duedate'] && $this->isValidDateTimeFormat($data['duedate'])){
+            //$ticket->editFields('duedate', $data['duedate'], $comments);
+            if ($data['duedate']){
+                $field = $ticket->getField("duedate");
+                $parsedComments = "<p>".$comments."<p>";
+                $post = array("","",$parsedComments);
+                $field->setValue($data['duedate']);
+                $form = $field->getEditForm($post);
+                if($form->isValid()){
+                    $ticket->updateField($form, $errors);
+                }
+            }
+        }
+        //duedate
 
         return $ticket;
     }
 
-    function getChanges($new, $old) {
-        return ($old != $new) ? array($old, $new) : false;
+    function isValidDateTimeFormat($dateTimeString, $format = 'Y-m-d H:i:s') {
+        $dateTimeObj = DateTime::createFromFormat($format, $dateTimeString);
+        return $dateTimeObj && $dateTimeObj->format($format) === $dateTimeString;
     }
 
     function suspend($format)
