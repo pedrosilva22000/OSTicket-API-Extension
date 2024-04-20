@@ -8,8 +8,6 @@ require_once 'config.php';
 
 include INCLUDE_DIR . 'class.dispatcher.php';
 
-include 'debugger.php';
-
 class ProjetoPlugin extends Plugin
 {
 	var $config_class = 'ProjetoPluginConfig';
@@ -90,7 +88,8 @@ class ProjetoPlugin extends Plugin
 			//guarda a informacao das novas tabelas num ficheiro sql
 			//suporta varias tabelas, se criarmos novas é so adicionar o nome a array
 			$tableNames = array(
-				TABLE_PREFIX . API_NEW_TABLE
+				TABLE_PREFIX . API_NEW_TABLE,
+				TABLE_PREFIX . SUSPEND_NEW_TABLE
 				//ADICIONAR NOVAS TABELAS AQUI
 			);
 			$this->storeData($tableNames);
@@ -200,7 +199,7 @@ class ProjetoPlugin extends Plugin
 	private static function registerEndpoints()
 	{
 
-		$routes = array(
+		$routesPOST = array(
 			array(
 				'prefix' => "open/tickets",
 				'function' => 'create'
@@ -227,10 +226,53 @@ class ProjetoPlugin extends Plugin
 			)
 		);
 
-		foreach ($routes as $route) {
+		$routesGET = array(
+			array(
+				'prefix' => "departments",
+				'function' => 'showDeps'
+			),
+			array(
+				'prefix' => "slas",
+				'function' => 'showSLAs'
+			),
+			array(
+				'prefix' => "teams",
+				'function' => 'showTeams'
+			),
+			array(
+				'prefix' => "staff",
+				'function' => 'showStaff'
+			),
+			array(
+				'prefix' => "priorities",
+				'function' => 'showPriority'
+			),
+			array(
+				'prefix' => "topics",
+				'function' => 'showTopic'
+			),
+			array(
+				'prefix' => "sources",
+				'function' => 'showSources'
+			)
+
+		);
+
+		foreach ($routesPOST as $route) {
 			Signal::connect('api', function ($dispatcher) use ($route) {
 				$dispatcher->append(
 					url_post(
+						"^/{$route['prefix']}\.(?P<format>xml|json|email)$",
+						array(PRJ_API_DIR.'api.projeto.php:TicketApiControllerProjeto', $route['function'])
+					)
+				);
+			});
+		}
+
+		foreach ($routesGET as $route) {
+			Signal::connect('api', function ($dispatcher) use ($route) {
+				$dispatcher->append(
+					url_get(
 						"^/{$route['prefix']}\.(?P<format>xml|json|email)$",
 						array(PRJ_API_DIR.'api.projeto.php:TicketApiControllerProjeto', $route['function'])
 					)

@@ -1,5 +1,5 @@
 
-INSERT into `%TABLE_PREFIX%event` (`name`) VALUES ('suspended');
+INSERT into `%TABLE_PREFIX%event` (`id`, `name`) VALUES (22, 'suspended');
 
 CREATE TABLE IF NOT EXISTS `%TABLE_PREFIX%api_key_nova` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
@@ -18,5 +18,12 @@ CREATE TABLE IF NOT EXISTS `%TABLE_PREFIX%api_key_nova` (
 
 
 
-INSERT INTO `%TABLE_PREFIX%ticket_status` (`name`, `state`, `mode`, `flags`, `sort`, `properties`, `created`, `updated`)
-VALUES ('Suspended', 'open', 3, 0, 6, '{"description":"Tickets are still open but time isnt counting"}', NOW(), NOW());
+INSERT INTO `%TABLE_PREFIX%ticket_status` (`id`, `name`, `state`, `mode`, `flags`, `sort`, `properties`, `created`, `updated`)
+VALUES (6, 'Suspended', 'open', 3, 0, 6, '{"description":"Tickets are still open but time isnt counting"}', NOW(), NOW());
+
+CREATE TABLE `%TABLE_PREFIX%suspended_ticket` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `number_ticket` INT NOT NULL,
+    `date_of_suspension` DATETIME NOT NULL,
+    `date_end_suspension` DATETIME
+);

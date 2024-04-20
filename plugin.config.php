@@ -10,8 +10,7 @@ define('STATE_SUSPENDED',6);
 
 //nome da tabela que guarda as novas apis keys
 define('API_NEW_TABLE', 'api_key_nova');
-//nome da tabela que guarda os status do osticket
-define('TICKET_STATUS', 'ticket_status');
+define('SUSPEND_NEW_TABLE', 'suspended_ticket');
 
 //directories to SQL files
 define('PRJ_PLUGIN_DIR', INCLUDE_DIR.'plugins/api/');

@@ -1,6 +1,8 @@
 <?php
 
 include_once INCLUDE_DIR.'class.api.php';
+include_once INCLUDE_DIR.'plugin.config.php';
+include_once PRJ_PLUGIN_DIR.'class.ticket.projeto.php';
 
 //classe que dá override a algumas funções da class api para adaptar a nova tabela api key
 class ApiProjeto extends API{
@@ -26,7 +28,96 @@ class ApiProjeto extends API{
     }
 
      /** Static functions **/
-   
+   static function getDeps(){
+
+        $sql='SELECT id, signature AS NomeDepartamento FROM ' . DEPT_TABLE;
+
+        if (($res=db_query($sql))) 
+        {
+            while ($row = $res -> fetch_row()) {
+              printf ("%s - %s\n", $row[0], $row[1]);
+            }
+
+            $res -> free_result();
+          }
+   }
+
+    static function getSLAS(){
+
+        $sql='SELECT id, name AS SLA FROM ' . SLA_TABLE;
+
+        if (($res=db_query($sql))) 
+        {
+            while ($row = $res -> fetch_row()) {
+            printf ("%s - %s\n", $row[0], $row[1]);
+            }
+
+            $res -> free_result();
+        }
+    }
+
+    static function getTeams(){
+
+        $sql='SELECT team_id, name, notes FROM ' . TEAM_TABLE;
+
+        if (($res=db_query($sql))) 
+        {
+            while ($row = $res -> fetch_row()) {
+            printf ("%s - %s (%s)\n", $row[0], $row[1], $row[2]);
+            }
+
+            $res -> free_result();
+        }
+    }
+
+    static function getStaff(){
+
+        $sql='SELECT staff_id, firstname, lastname, email FROM ' . STAFF_TABLE;
+
+        if (($res=db_query($sql))) 
+        {
+            while ($row = $res -> fetch_row()) {
+            printf ("%s - %s %s (%s)\n", $row[0], $row[1], $row[2], $row[3]);
+            }
+
+            $res -> free_result();
+        }
+    }
+    
+    static function getPiority(){
+        $sql='SELECT priority_id, priority_desc FROM ' . TICKET_PRIORITY_TABLE;
+
+        if (($res=db_query($sql))) 
+        {
+            while ($row = $res -> fetch_row()) {
+            printf ("%s - %s\n", $row[0], $row[1]);
+            }
+
+            $res -> free_result();
+        }
+    }
+
+    static function getTopic(){
+        $sql='SELECT topic_id, topic, notes FROM ' . TOPIC_TABLE;
+
+        if (($res=db_query($sql))) 
+        {
+            while ($row = $res -> fetch_row()) {
+            printf ("%s - %s (%s)\n", $row[0], $row[1], $row[2]);
+            }
+
+            $res -> free_result();
+        }
+    }
+
+    static function getSources(){
+        //$sources = SOURCES;
+        $sources = TicketProjeto::getSources();
+
+        foreach ($sources as $item) {
+            printf("%s\n",$item);
+        }
+    }
 
     static function lookupByKeyPRJ($key) {
         return self::lookup(self::getIdByKeyPRJ($key));
@@ -107,5 +198,5 @@ class ApiProjeto extends API{
 
     function canSuspendTickets(){
         return ($this->ht['can_suspend_tickets']);
-    }
+    }   
 }

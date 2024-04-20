@@ -3,6 +3,8 @@
 include_once 'plugin.config.php';
 include_once 'class.api.projeto.php';
 
+//WIP
+include_once PRJ_PLUGIN_DIR.'class.ticket.projeto.php';
 // include 'debugger.php';
 
 class TicketApiControllerProjeto extends TicketApiController
@@ -181,15 +183,15 @@ class TicketApiControllerProjeto extends TicketApiController
     function editTicket($data, $key, $source = 'API')
     {
         $number = $data['ticketNumber'];
-        $ticket = Ticket::lookup(array('number' => $number));
+        $ticket = TicketProjeto::lookup(array('number' => $number));
+
         $comments = $data['comments'];
 
         global $thisstaff;
         $thisstaff = Staff::lookup($key->ht['id_staff']);
         $thisstaffuser = $thisstaff->getUserName();
-        
-        
-        $msg = '';
+
+        $msg = ''; //erros e assim
 
         /* if (!$data['staff'] && $data['staff'] != null && $ticket->getStaffId() != 0) {
             if ($ticket->setStaffId(0)) {
@@ -264,16 +266,16 @@ class TicketApiControllerProjeto extends TicketApiController
 
         //dept
         // if($data['dept'] && $data['dept'] != $ticket->getDeptId()){
-        //     $this->transfer($data['dept'],$comments, $data['refer'], $ticket, $thisstaff);
+        //     $ticket->editFields('dept', $data['dept'], $comments, $data['refer']);
         // }
         //dept
 
         //NAO FUNCIONA AINDA
+
         //priority
         if ($data['priority'] && $data['priority'] != $ticket->getPriorityId()){
-            $this->updateField($data['priority'], $comments, $ticket, 22);
+            $ticket->editFields('priority', $data['priority'], $comments);
         }
-
         //priority
 
         // if($data['duedate']){
@@ -286,228 +288,6 @@ class TicketApiControllerProjeto extends TicketApiController
 
     function getChanges($new, $old) {
         return ($old != $new) ? array($old, $new) : false;
-    }
-
-    function updateField($newId, $userComments, $ticket, $formId)
-    {
-        global $thisstaff, $cfg;
-
-        $field = DynamicFormField::lookup($formId);
-        $field = $ticket->getField('priority');
-        $oldId = $ticket->getPriorityId();
-        $old = array(Priority::lookup($oldId)->getDesc(),$oldId);
-        $new = array(Priority::lookup($newId)->getDesc(),$newId);
-
-        if($field->setValue(array(1,'Low'))){
-            $this->debugToFile('AYOOOOOOOOOO');
-        }
-        
-        $updateDuedate = false;
-
-        $changes = $this->getChanges($new, $old);
-        //$changes = $field->getChanges();
-        // if ($old){
-        if ($field->answer) {
-            if (!$field->isEditableToStaff()){
-                $errors = sprintf(
-                    __('%s can not be edited'),
-                    __($field->getLabel())
-                );}
-            elseif (!$field->save(true)){ //ESTES SAVE NAO ESTA A DAR????
-                $errors = __('Unable to update field');
-            } 
-
-            $changes['fields'] = array($field->getId() => $changes);
-
-        }else{ //IGONRAR ISTO POR ENQUANTO MAS NAO APAGAR (PROVAVELMENTE NAO FUNCIONA)
-            $val = $new;
-            $fid = $field->get('name');
-
-            // Convert duedate to DB timezone.
-            if ($fid == 'duedate') {
-                if (empty($val))
-                    $val = null;
-                elseif ($dt = Format::parseDateTime($val)) {
-                    // Make sure the due date is valid
-                    if (Misc::user2gmtime($val) <= Misc::user2gmtime())
-                        $errors['field'] = __('Due date must be in the future');
-                    else {
-                        $dt->setTimezone(new DateTimeZone($cfg->getDbTimezone()));
-                        $val = $dt->format('Y-m-d H:i:s');
-                    }
-                }
-            }
-
-            $changes = array();
-            $ticket->{$fid} = $val;
-            foreach ($ticket->dirty as $F => $old) {
-                switch ($F) {
-                    case 'sla_id':
-                    case 'duedate':
-                        $updateDuedate = true;
-                    case 'topic_id':
-                    case 'user_id':
-                    case 'source':
-                        $changes[$F] = array($old, $this->{$F});
-                }
-            }
-
-            if (!$errors && !$ticket->save())
-                $errors['field'] = __('Unable to update field');
-        }//IGONRAR ISTO POR ENQUANTO MAS NAO APAGAR^^(PROVAVELMENTE NAO FUNCIONA)^^^^
-
-        if ($errors)
-            return false;
-
-        // Record the changes
-        $ticket->logEvent('edited', $changes);
-
-        // Post internal note if any
-        $comments = $userComments;
-        if ($comments) {
-            $title = sprintf(__('%s updated'), __($field->getLabel()));
-            $_errors = array();
-            $ticket->postNote(
-                array('note' => $comments, 'title' => $title),
-                $_errors,
-                $thisstaff,
-                false
-            );
-        }
-
-        //EXTENDER A CLASSE TICKET PARA IR A TABELA ALTERAR O LASTUPDATE A MARTELADA
-        //PORQUE A VARIAVEL LASTUPDATE É PRIVADA E NAO HA METODO PARA A ALTERAR
-        //$this->lastupdate = SqlFunction::NOW();
-
-        if ($updateDuedate)
-            $ticket->updateEstDueDate();
-
-        $ticket->save();
-
-        Signal::send('model.updated', $ticket);
-
-        return true;
-    }
-
-    //talvez meter numa classe ticket extendida
-    function transfer($deptId, $deptComments, $refer, $ticket, $alert = true){
-        global $thisstaff, $cfg;
-
-        $cdept = $ticket->getDept();
-        $ticket->setDeptId($deptId);
-        $dept = $ticket->getDept();
-
-        // Make sure the new department allows assignment to the
-        // currently assigned agent (if any)
-        if (
-            $ticket->isAssigned()
-            && ($staff = $ticket->getStaff())
-            && $dept->assignMembersOnly()
-            && !$dept->isMember($staff)
-        ) {
-            $ticket->setStaffId(0);
-        }
-
-        if ($errors || !$ticket->save(true))
-            return false;
-
-        // Reopen ticket if closed
-        if ($ticket->isClosed())
-            $ticket->reopen();
-
-        // Set SLA of the new department
-        if (!$ticket->getSLAId() || $ticket->getSLA()->isTransient())
-            if (($slaId = $ticket->getDept()->getSLAId()))
-                $ticket->selectSLAId($slaId);
-
-        // Log transfer event
-        $ticket->logEvent('transferred', array('dept' => $dept->getName()));
-
-        if (($referral = $ticket->hasReferral($dept, ObjectModel::OBJECT_TYPE_DEPT)))
-            $referral->delete();
-
-        // Post internal note if any
-        $note = null;
-        $comments = $deptComments;
-        if ($comments) {
-            $title = sprintf(
-                __('%1$s transferred from %2$s to %3$s'),
-                __('Ticket'),
-                $cdept->getName(),
-                $dept->getName()
-            );
-
-            $_errors = array();
-            $note = $ticket->postNote(
-                array('note' => $comments, 'title' => $title),
-                $_errors,
-                $thisstaff,
-                false
-            );
-        }
-
-        if ($refer && $cdept)
-            $ticket->getThread()->refer($cdept);
-
-        //Send out alerts if enabled AND requested
-        if (!$alert || !$cfg->alertONTransfer() || !$dept->getNumMembersForAlerts())
-            return true; //no alerts!!
-
-        if (
-            ($email = $dept->getAlertEmail())
-            && ($tpl = $dept->getTemplate())
-            && ($msg = $tpl->getTransferAlertMsgTemplate())
-        ) {
-            $msg = $ticket->replaceVars(
-                $msg->asArray(),
-                array('comments' => $note, 'staff' => $thisstaff)
-            );
-            // Recipients
-            $recipients = array();
-            // Assigned staff or team... if any
-            if ($ticket->isAssigned() && $cfg->alertAssignedONTransfer()) {
-                if ($ticket->getStaffId())
-                    $recipients[] = $ticket->getStaff();
-                elseif (
-                    $ticket->getTeamId()
-                    && ($team = $ticket->getTeam())
-                    && ($members = $team->getMembersForAlerts())
-                ) {
-                    $recipients = array_merge($recipients, $members);
-                }
-            } elseif ($cfg->alertDeptMembersONTransfer() && !$ticket->isAssigned()) {
-                // Only alerts dept members if the ticket is NOT assigned.
-                foreach ($dept->getMembersForAlerts() as $M)
-                    $recipients[] = $M;
-            }
-
-            // Always alert dept manager??
-            if (
-                $cfg->alertDeptManagerONTransfer()
-                && $dept
-                && ($manager = $dept->getManager())
-            ) {
-                $recipients[] = $manager;
-            }
-            $sentlist = $options = array();
-            if ($note) {
-                $options += array('thread' => $note);
-            }
-            foreach ($recipients as $k => $staff) {
-                if (
-                    !is_object($staff)
-                    || !$staff->isAvailable()
-                    || in_array($staff->getEmail(), $sentlist)
-                ) {
-                    continue;
-                }
-                $alert = $ticket->replaceVars($msg, array('recipient' => $staff));
-                $email->sendAlert($staff, $alert['subj'], $alert['body'], null, $options);
-                $sentlist[] = $staff->getEmail();
-            }
-        }
-
-        return true;
     }
 
     function suspend($format)
@@ -528,6 +308,129 @@ class TicketApiControllerProjeto extends TicketApiController
     /* SuspendTicket(data,api) */
     function suspendTicket($data, $key, $source = 'API')
     {
-        //TODO
+        $number = $data['ticketNumber'];
+        $ticket = TicketProjeto::lookup(array('number' => $number));
+        $staff = Staff::lookup($key->ht['id_staff']);
+
+        $comments = $data['comments'];
+        
+        global $thisstaff;
+        $thisstaff = $staff;
+        //altera o status do ticket
+        if ($ticket->setSuspend(comments: $comments)) {
+            return $ticket;
+        }
+    }
+
+    function showDeps(){
+
+        if (!($key = $this->requireApiKey()) || !$key->canEditTickets())
+            return $this->exerr(401, __('API key not authorized'));
+        
+        $res = ApiProjeto::getDeps();
+
+        $this->response(201, $res);
+
+        if ($res)
+            $this->response(201, $res);
+        else
+            $this->exerr(500, _S("unknown error"));
+        
+    }
+
+    function showSLAs(){
+
+        if (!($key = $this->requireApiKey()) || !$key->canEditTickets())
+            return $this->exerr(401, __('API key not authorized'));
+        
+        $res = ApiProjeto::getSLAS();
+
+        $this->response(201, $res);
+
+        if ($res)
+            $this->response(201, $res);
+        else
+            $this->exerr(500, _S("unknown error"));
+
+    }
+
+    function showTeams(){
+
+        if (!($key = $this->requireApiKey()) || !$key->canEditTickets())
+            return $this->exerr(401, __('API key not authorized'));
+        
+        $res = ApiProjeto::getTeams();
+
+        $this->response(201, $res);
+
+        if ($res)
+            $this->response(201, $res);
+        else
+            $this->exerr(500, _S("unknown error"));
+
+    }
+
+    function showStaff(){
+
+        if (!($key = $this->requireApiKey()) || !$key->canEditTickets())
+            return $this->exerr(401, __('API key not authorized'));
+        
+        $res = ApiProjeto::getStaff();
+
+        $this->response(201, $res);
+
+        if ($res)
+            $this->response(201, $res);
+        else
+            $this->exerr(500, _S("unknown error"));
+
+    }
+
+    function showPriority(){
+
+        if (!($key = $this->requireApiKey()) || !$key->canEditTickets())
+            return $this->exerr(401, __('API key not authorized'));
+        
+        $res = ApiProjeto::getPiority();
+
+        $this->response(201, $res);
+
+        if ($res)
+            $this->response(201, $res);
+        else
+            $this->exerr(500, _S("unknown error"));
+
+    }
+
+    function showTopic(){
+
+        if (!($key = $this->requireApiKey()) || !$key->canEditTickets())
+            return $this->exerr(401, __('API key not authorized'));
+        
+        $res = ApiProjeto::getTopic();
+
+        $this->response(201, $res);
+
+        if ($res)
+            $this->response(201, $res);
+        else
+            $this->exerr(500, _S("unknown error"));
+
+    }
+
+    function showSources(){
+
+        if (!($key = $this->requireApiKey()) || !$key->canEditTickets())
+            return $this->exerr(401, __('API key not authorized'));
+        
+        $res = ApiProjeto::getSources();
+
+        $this->response(201, $res);
+
+        if ($res)
+            $this->response(201, $res);
+        else
+            $this->exerr(500, _S("unknown error"));
+
     }
 }
