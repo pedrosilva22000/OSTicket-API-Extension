@@ -1,9 +1,10 @@
 <?php
 
-include_once INCLUDE_DIR.'class.ticket.php';
+include_once INCLUDE_DIR . 'class.ticket.php';
 
 //classe que dá override a algumas funções da class api para adaptar a nova tabela api key
-class TicketProjeto extends Ticket{
+class TicketProjeto extends Ticket
+{
 
     function debugToFile($erro)
     {
@@ -12,11 +13,13 @@ class TicketProjeto extends Ticket{
         file_put_contents($file, $text, FILE_APPEND | LOCK_EX);
     }
 
-    function getChanges($new, $old) {
+    function getChanges($new, $old)
+    {
         return ($old != $new) ? array($old, $new) : false;
     }
 
-    function editFields($field, $newValue, $comments, $refer=false, $alert=true){
+    function editFields($field, $newValue, $comments, $refer = false, $alert = true)
+    {
         global $thisstaff, $cfg;
 
         switch ($field) {
@@ -36,31 +39,31 @@ class TicketProjeto extends Ticket{
             case 'priority':
                 $oldValue = $this->getPriorityId();
                 $this->setPriorityId($newValue);
-                $oldValue = array(Priority::lookup($oldValue)->getDesc(),$oldValue);
-                $newValue = array(Priority::lookup($newValue)->getDesc(),$newValue);
+                $oldValue = array(Priority::lookup($oldValue)->getDesc(), $oldValue);
+                $newValue = array(Priority::lookup($newValue)->getDesc(), $newValue);
                 break;
                 //ADICIONAR O RESTO DOS CASES
             default:
         }
 
         //verifica se o novo valor é igual ao antigo
-        if($newValue == $oldValue){
+        if ($newValue == $oldValue) {
             return false;
         }
         //guarda as mudancas para utilizar no logevent
         $changes = $this->getChanges($newValue, $oldValue);
 
-        if($field == 'priority'){
+        if ($field == 'priority') {
             $changes['fields'] = array(22 => $changes);
         }
-        
+
         //se nao existir oldvalue, existirem erros e nao der save retorna falso
-        if(!$oldValue || $errors || !$this->save(true)){
+        if (!$oldValue || $errors || !$this->save(true)) {
             return false;
         }
 
         // Post internal note if any
-        if($field == 'dept'){
+        if ($field == 'dept') {
             // Reopen ticket if closed
             if ($this->isClosed())
                 $this->reopen();
@@ -101,10 +104,10 @@ class TicketProjeto extends Ticket{
 
             if (!$alert || !$cfg->alertONTransfer() || !$dept->getNumMembersForAlerts())
                 return true;
-            else{
+            else {
                 $this->alerts($dept, $note);
             }
-        }else{
+        } else {
             $this->logEvent('edited', $changes);
 
             if ($comments) {
@@ -120,14 +123,15 @@ class TicketProjeto extends Ticket{
         }
 
         $this->lastupdate = SqlFunction::NOW();
-        
-        if($field != 'dept')
+
+        if ($field != 'dept')
             Signal::send('model.updated', $this);
 
         return true;
     }
 
-    function alerts($dept, $note){
+    function alerts($dept, $note)
+    {
         global $thisstaff, $cfg;
 
         if (
@@ -202,8 +206,9 @@ class TicketProjeto extends Ticket{
         return $this->save(true);
     }
 
-    function setFormEntryValueId($newValue){
-        $sql = "UPDATE ".FORM_ANSWER_TABLE." SET value_id = ".$newValue." WHERE entry_id=(SELECT id FROM ".FORM_ENTRY_TABLE." WHERE object_id = ".$this->getId().")";
+    function setFormEntryValueId($newValue)
+    {
+        $sql = "UPDATE " . FORM_ANSWER_TABLE . " SET value_id = " . $newValue . " WHERE entry_id=(SELECT id FROM " . FORM_ENTRY_TABLE . " WHERE object_id = " . $this->getId() . ")";
         db_query($sql);
     }
 
@@ -222,7 +227,7 @@ class TicketProjeto extends Ticket{
         //tirar o suspend
         if ($this->getStatus() == 'Suspended') {
 
-            
+
 
             $query_update = 'UPDATE ' . SUSPEND_NEW_TABLE . ' SET date_end_suspension=NOW()'
                 . 'WHERE number_ticket=' . $this->getNumber()
@@ -239,7 +244,7 @@ class TicketProjeto extends Ticket{
             if (!$res)
                 return false;
 
-            
+
 
 
             //fazer a diferença e dps meter os valores
@@ -257,6 +262,9 @@ class TicketProjeto extends Ticket{
             $this->est_duedate = $finalDatetimeFormatted;
             // $this->duedate = $finalDatetimeFormatted;
 
+            //limpar o overdue se exitir
+            if ($this->isOverdue())
+                $this->clearOverdue(false);
 
 
             $this->status = TicketStatus::lookup(STATE_OPEN);
@@ -327,7 +335,8 @@ class TicketProjeto extends Ticket{
         return true;
     }
 
-    static function getSources(){
+    static function getSources()
+    {
         return Ticket::$sources;
     }
 }
