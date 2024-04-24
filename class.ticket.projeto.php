@@ -1,6 +1,7 @@
 <?php
 
 include_once INCLUDE_DIR . 'class.ticket.php';
+include_once 'debugger.php';
 
 //classe que dá override a algumas funções da class api para adaptar a nova tabela api key
 class TicketProjeto extends Ticket
@@ -212,6 +213,7 @@ class TicketProjeto extends Ticket
         db_query($sql);
     }
 
+    
     function setSuspend($comments = '', &$errors = array())
     {
         global $cfg, $thisstaff;
@@ -250,36 +252,37 @@ class TicketProjeto extends Ticket
             //fazer a diferença e dps meter os valores
 
             $initialDatetime = new DateTime($this->getSLADueDate(true));
+            
 
+            $finalDatetime = clone $initialDatetime;
+            
             $durationToSubtract = db_result($res);
+
+        
 
             list($hours, $minutes, $seconds) = explode(':', $durationToSubtract);
             $interval = new DateInterval("PT{$hours}H{$minutes}M{$seconds}S");
-            $finalDatetime = $initialDatetime->add($interval);
+            
+            $finalDatetime->add($interval);
 
             $finalDatetimeFormatted = $finalDatetime->format('Y-m-d H:i:s');
 
             $this->est_duedate = $finalDatetimeFormatted;
-            // $this->duedate = $finalDatetimeFormatted;
+            $this->duedate = $finalDatetimeFormatted;
 
+            
             //limpar o overdue se exitir
-            if ($this->isOverdue())
+            if ($finalDatetime > $initialDatetime)
                 $this->clearOverdue(false);
 
 
             $this->status = TicketStatus::lookup(STATE_OPEN);
             $status =  STATE_OPEN;
 
-            //TIREI POR ENQUANTO PARA FICAR IGUAL AO DELES
-            // $ecb = function ($t) {
-            //     $t->logEvent('reopened', array('status' => STATE_OPEN));
-            //     // Set new sla duedate if any
-            //     $t->updateEstDueDate();
-            // };
         }
 
 
-        //meter o suspend
+        //meter a suspend
         elseif ($this->getStatus() == 'Open') {
 
             if ($errors) return false;
@@ -298,13 +301,6 @@ class TicketProjeto extends Ticket
 
             $this->status = TicketStatus::lookup(STATE_SUSPENDED);
             $status =  STATE_SUSPENDED;
-
-            //TIREI POR ENQUANTO PARA FICAR IGUAL AO DELES
-            // $ecb = function ($t) {
-            //     $t->logEvent('suspended', array('status' => STATE_SUSPENDED));
-            //     // Set new sla duedate if any
-            //     $t->updateEstDueDate();
-            // };
         }
 
         if (!$this->save(true))
