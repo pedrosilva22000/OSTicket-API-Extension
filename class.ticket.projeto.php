@@ -1,12 +1,11 @@
 <?php
 
-include_once INCLUDE_DIR . 'class.ticket.php';
-include_once 'debugger.php';
+include_once INCLUDE_DIR.'class.ticket.php';
 
 //classe que dá override a algumas funções da class api para adaptar a nova tabela api key
-class TicketProjeto extends Ticket
-{
+class TicketProjeto extends Ticket{
 
+    //TEMPORARIO SO PARA FAZER TESTES DEPOIS APAGAR
     function debugToFile($erro)
     {
         $file = INCLUDE_DIR . "plugins/api/debug.txt";
@@ -14,13 +13,11 @@ class TicketProjeto extends Ticket
         file_put_contents($file, $text, FILE_APPEND | LOCK_EX);
     }
 
-    function getChanges($new, $old)
-    {
+    function getChanges($new, $old) {
         return ($old != $new) ? array($old, $new) : false;
     }
 
-    function editFields($field, $newValue, $comments, $refer = false, $alert = true)
-    {
+    function editFields($field, $newValue, $comments, $refer=false){
         global $thisstaff, $cfg;
 
         switch ($field) {
@@ -40,31 +37,31 @@ class TicketProjeto extends Ticket
             case 'priority':
                 $oldValue = $this->getPriorityId();
                 $this->setPriorityId($newValue);
-                $oldValue = array(Priority::lookup($oldValue)->getDesc(), $oldValue);
-                $newValue = array(Priority::lookup($newValue)->getDesc(), $newValue);
+                $oldValue = array(Priority::lookup($oldValue)->getDesc(),$oldValue);
+                $newValue = array(Priority::lookup($newValue)->getDesc(),$newValue);
                 break;
                 //ADICIONAR O RESTO DOS CASES
             default:
         }
 
         //verifica se o novo valor é igual ao antigo
-        if ($newValue == $oldValue) {
+        if($newValue == $oldValue){
             return false;
         }
         //guarda as mudancas para utilizar no logevent
         $changes = $this->getChanges($newValue, $oldValue);
 
-        if ($field == 'priority') {
+        if($field == 'priority'){
             $changes['fields'] = array(22 => $changes);
         }
-
+        
         //se nao existir oldvalue, existirem erros e nao der save retorna falso
-        if (!$oldValue || $errors || !$this->save(true)) {
+        if(!$oldValue || $errors || !$this->save(true)){
             return false;
         }
 
         // Post internal note if any
-        if ($field == 'dept') {
+        if($field == 'dept'){
             // Reopen ticket if closed
             if ($this->isClosed())
                 $this->reopen();
@@ -103,37 +100,90 @@ class TicketProjeto extends Ticket
             if ($refer && $oldValue)
                 $this->getThread()->refer($oldValue);
 
-            if (!$alert || !$cfg->alertONTransfer() || !$dept->getNumMembersForAlerts())
-                return true;
-            else {
-                $this->alerts($dept, $note);
-            }
-        } else {
+        }else{
             $this->logEvent('edited', $changes);
 
-            if ($comments) {
-                $title = sprintf(__('%s updated'), __($field)); //CHECKAR ESTES COMMENTS
-                $_errors = array();
-                $this->postNote(
-                    array('note' => $comments, 'title' => $title),
-                    $_errors,
-                    $thisstaff,
-                    false
-                );
-            }
-        }
+            $this->lastupdate = SqlFunction::NOW();
 
-        $this->lastupdate = SqlFunction::NOW();
-
-        if ($field != 'dept')
             Signal::send('model.updated', $this);
+        }
 
         return true;
     }
+    
+    function addComments($comments, $fields, $staffAssignee=null, $teamAssignee=null){
+        global $thisstaff;
 
-    function alerts($dept, $note)
-    {
+        if(!$comments || (empty($fields) && !$staffAssignee && !$teamAssignee)){
+            return false;
+        }
+
+        $fieldLabels = array();
+        foreach($fields as $field){
+            if($field != 'dept'){
+                $fieldLabels[] = $this->getField($field)->getLabel();
+            }
+        }
+
+        //muda o titulo dinamicamente de acordo com os fields alterados
+        //os fields staff team e dept sao feitos a parte
+        $numberFields = count($fieldLabels);
+        $titleString = '';
+        for ($i = 1; $i <= $numberFields; $i++) {
+            $titleString .= "%$i\$s";
+            if($numberFields != 1 && $i != $numberFields){
+                $titleString .= ($i < $numberFields - 1) ? ', ' : ' and ';
+            }
+        }
+
+        //ve se um novo staff ou team foi assigned para meter no titulo do comentario
+        $assignTitle = '';
+        if($staffAssignee && $teamAssignee){
+            if ($staffAssignee->getId() == $thisstaff->getId())
+                $assignTitle = sprintf(_S('Ticket claimed by %1$s and Assigned to %2$s'), $thisstaff->getName(), $teamAssignee->getName());
+            else
+                $assignTitle = sprintf(_S('Ticket Assigned to %s and %2$s'), $staffAssignee->getName(), $teamAssignee->getName());
+        }
+        elseif ($staffAssignee) {
+            $assignTitle = ($staffAssignee->getId() == $thisstaff->getId()) 
+            ? sprintf(_S('Ticket claimed by %s'), $thisstaff->getName()) 
+            : sprintf(_S('Ticket Assigned to %s'), $staffAssignee->getName());
+        } elseif ($teamAssignee) {
+            $assignTitle = sprintf(_S('Ticket Assigned to %s'), $teamAssignee->getName());
+        }
+
+        if(in_array('dept', $fields))
+            $transferTitle = 'Ticket transferred'; //INCOMPLETO FALTA METER from oldDept to newDept
+
+        if($titleString){
+            $title = sprintf($titleString.' updated', ...$fieldLabels);
+            if($assignTitle)
+                $title .= ' and '.$assignTitle;
+            if($transferTitle)
+                $title .= ' and '.$transferTitle;
+        }
+        elseif($assignTitle){
+            $title = $assignTitle;
+            if($transferTitle)
+                $title .= ' and '.$transferTitle;
+        }
+        else
+            $title .= $transferTitle;
+
+        $_errors = array();
+        $note = $this->postNote(
+            array('note' => $comments, 'title' => $title),
+            $_errors,
+            $thisstaff,
+            false
+        );
+
+        return $note;
+    }
+
+    function alerts($note){
         global $thisstaff, $cfg;
+        $dept = $this->getDept();
 
         if (
             ($email = $dept->getAlertEmail())
@@ -207,13 +257,11 @@ class TicketProjeto extends Ticket
         return $this->save(true);
     }
 
-    function setFormEntryValueId($newValue)
-    {
-        $sql = "UPDATE " . FORM_ANSWER_TABLE . " SET value_id = " . $newValue . " WHERE entry_id=(SELECT id FROM " . FORM_ENTRY_TABLE . " WHERE object_id = " . $this->getId() . ")";
+    function setFormEntryValueId($newValue){
+        $sql = "UPDATE ".FORM_ANSWER_TABLE." SET value_id = ".$newValue." WHERE entry_id=(SELECT id FROM ".FORM_ENTRY_TABLE." WHERE object_id = ".$this->getId().")";
         db_query($sql);
     }
 
-    
     function setSuspend($comments = '', &$errors = array())
     {
         global $cfg, $thisstaff;
@@ -331,8 +379,7 @@ class TicketProjeto extends Ticket
         return true;
     }
 
-    static function getSources()
-    {
+    static function getSources(){
         return Ticket::$sources;
     }
 }

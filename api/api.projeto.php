@@ -71,10 +71,12 @@ class TicketApiControllerProjeto extends TicketApiController
             return $this->exerr(401, __('API key not authorized'));
 
         $ticket = null;
-        $ticket = $this->createTicket($this->getRequest($format));
+        $data = $this->getRequest($format);
+        $data['email'] = Staff::lookup($key->getStaffId())->getEmail();
+        $ticket = $this->createTicket($data);
 
         if ($ticket)
-            $this->response(201, $ticket->getNumber());
+            $this->response(201, "Ticket ".$ticket->getNumber()." Created");
         else
             $this->exerr(500, _S("unknown error"));
     }
@@ -91,7 +93,7 @@ class TicketApiControllerProjeto extends TicketApiController
         $ticket = $this->closeTicket($this->getRequest($format), $key);
 
         if ($ticket)
-            $this->response(201, $ticket->getNumber());
+            $this->response(201, "Ticket ".$ticket->getNumber()." Closed");
         else
             $this->exerr(500, _S("unknown error"));
     }
@@ -129,7 +131,7 @@ class TicketApiControllerProjeto extends TicketApiController
         $ticket = $this->reopenTicket($this->getRequest($format), $key);
 
         if ($ticket)
-            $this->response(201, $ticket->getNumber());
+            $this->response(201, "Ticket ".$ticket->getNumber()." Reopened");
         else
             $this->exerr(500, _S("unknown error"));
     }
@@ -167,7 +169,7 @@ class TicketApiControllerProjeto extends TicketApiController
         $ticket = $this->editTicket($this->getRequest($format), $key);
 
         if ($ticket)
-            $this->response(201, $ticket->getNumber());
+            $this->response(201, "Ticket ".$ticket->getNumber()." Updated");
         else
             $this->exerr(500, _S("unknown error"));
     }
@@ -187,13 +189,19 @@ class TicketApiControllerProjeto extends TicketApiController
 
         $comments = $data['comments'];
 
-        global $thisstaff;
+        global $thisstaff, $cfg;
         $thisstaff = Staff::lookup($key->ht['id_staff']);
         $thisstaffuser = $thisstaff->getUserName();
 
         $msg = ''; //erros e assim
 
-        /* if (!$data['staff'] && $data['staff'] != null && $ticket->getStaffId() != 0) {
+        //fields alterados
+        $fields = array();
+        //assignees
+        $staffAssignee = null;
+        $teamAssignee = null;
+
+        if (!$data['staff'] && $data['staff'] != null && $ticket->getStaffId() != 0) {
             if ($ticket->setStaffId(0)) {
                 $msg = $msg . 'Staff unassign successfully \n';
                 $ticket->logEvent('assigned', array('staff' => 'unassign'), user: $thisstaffuser);
@@ -204,7 +212,8 @@ class TicketApiControllerProjeto extends TicketApiController
         if ($data['staff']) {
             $staff = Staff::lookup($data['staff']);
             if ($ticket->getStaffId() != $staff->getId()) {
-                $ticket->assignToStaff($staff, $comments, user: $thisstaffuser);
+                $ticket->assignToStaff($staff, '', user: $thisstaffuser);
+                $staffAssignee = $staff;
             }
         }
 
@@ -215,92 +224,94 @@ class TicketApiControllerProjeto extends TicketApiController
         if ($data['team']) {
             $team = Team::lookup($data['team']);
             if ($ticket->getTeamId() != $data['team']) {
-                $ticket->assignToTeam($team, $comments, user: $thisstaffuser);
+                $ticket->assignToTeam($team, '', user: $thisstaffuser);
+                $teamAssignee = $team;
             }
         }
 
-        if ($data['user']) {
+        if ($data['user'] && $data['user'] != $ticket->getUserId()) {
             $user = User::lookup($data['user']);
             $ticket->changeOwner($user);
-        } */
-
-        //source
-        //VERIFICAR SE A SOURCE INSERIDA NO JSON É POSSIVEL enum('Web', 'Email', 'Phone', 'API', 'Other')
-        // if ($data['source']){
-        //     $field = $ticket->getField("source");
-        //     $parsedComments = "<p>".$comments."<p>";
-        //     $post = array("","",$parsedComments); 
-        //     $field->setValue($data['source']);
-        //     $form = $field->getEditForm($post);
-        //     if($form->isValid()){
-        //         $ticket->updateField($form, $errors);
-        //     }
-        // }
-        //source
-
-        //topic
-        // if ($data['topic'] && $data['topic'] != $ticket->getTopicId()){
-        //     $field = $ticket->getField("topic");
-        //     $parsedComments = "<p>".$comments."<p>";
-        //     $post = array("","",$parsedComments);
-        //     $field->setValue($data['topic']);
-        //     $form = $field->getEditForm($post);
-        //     if($form->isValid()){
-        //         $ticket->updateField($form, $errors);
-        //     }
-        // }
-        //topic
-
-        //sla
-        // if ($data['sla']){
-        //     $field = $ticket->getField("sla");
-        //     $parsedComments = "<p>".$comments."<p>";
-        //     $post = array("","",$parsedComments);
-        //     $field->setValue($data['sla']);
-        //     $form = $field->getEditForm($post);
-        //     if($form->isValid()){
-        //         $ticket->updateField($form, $errors);
-        //     }
-        // }
-        //sla
-
-        //dept
-        // if($data['dept'] && $data['dept'] != $ticket->getDeptId()){
-        //     $ticket->editFields('dept', $data['dept'], $comments, $data['refer']);
-        // }
-        //dept
-
-        //NAO FUNCIONA AINDA
-
-        //priority
-        // if ($data['priority'] && $data['priority'] != $ticket->getPriorityId()){
-        //     $ticket->editFields('priority', $data['priority'], $comments);
-        // }
-        //priority
-
-        //duedate
-
-        if($data['duedate'] && $this->isValidDateTimeFormat($data['duedate'])){
-            //$ticket->editFields('duedate', $data['duedate'], $comments);
-            if ($data['duedate']){
-                $field = $ticket->getField("duedate");
-                $parsedComments = "<p>".$comments."<p>";
-                $post = array("","",$parsedComments);
-                $field->setValue($data['duedate']);
-                $form = $field->getEditForm($post);
-                if($form->isValid()){
-                    $ticket->updateField($form, $errors);
-                }
-            }
         }
-        //duedate
+
+        // //source
+        // //VERIFICA SE A SOURCE INSERIDA NO JSON É POSSIVEL enum('Web', 'Email', 'Phone', 'API', 'Other')
+        if ($data['source'] && in_array($data['source'], $ticket->getSources()) && $data['source'] != $ticket->getSource()){
+            $this->simulatePost($ticket, 'source', $data);
+            $fields[] = 'source';
+        }
+        // //source
+
+        // //topic
+        if ($data['topic'] && $data['topic'] != $ticket->getTopicId()){
+            $this->simulatePost($ticket, 'topic', $data);
+            $fields[] = 'topic';
+        }
+        // //topic
+
+        // //sla
+        if ($data['sla'] && $data['sla'] != $ticket->getSLAId()){
+            $this->simulatePost($ticket, 'sla', $data);
+            $fields[] = 'sla';
+        }
+        // //sla
+
+        // //dept
+        if($data['dept'] && $data['dept'] != $ticket->getDeptId()){
+            $ticket->editFields('dept', $data['dept'], '', $data['refer']);
+            $fields[] = 'dept';
+        }
+        // //dept
+
+        // //priority
+        if ($data['priority'] && $data['priority'] != $ticket->getPriorityId()){
+            $ticket->editFields('priority', $data['priority'], '');
+            $fields[] = 'priority';
+        }
+        // //priority
+
+        // //duedate
+        if($data['duedate'] && $this->isValidDateTimeFormat($data['duedate']) && $this->compareStringToDate($data['duedate'], $ticket->getDueDate())){
+            $this->simulatePost($ticket, 'duedate', $data);
+            $fields[] = 'duedate';
+        }
+        // //duedate
+
+        //Adiciona SÓ UM comentario para todas as alteracoes
+        //para se ter comentarios separados tem de se alterar os valores um de cada vez
+        $notes = $ticket->addComments($comments, $fields, $staffAssignee, $teamAssignee);
+
+        //alerta do departamento (se for alterado), tem de estar no fim porque usa os comentarios (notes)
+        $alert = $data['alert'];
+        if(in_array('dept', $fields) && !$alert || !$cfg->alertONTransfer() || !$ticket->getDept()->getNumMembersForAlerts()){
+            $ticket->alerts($notes);
+        }
 
         return $ticket;
     }
 
+    function simulatePost($ticket, $fieldString, $data){
+        $field = $ticket->getField($fieldString);
+        $post = array("","","");
+        $field->setValue($data[$fieldString]);
+        $form = $field->getEditForm($post);
+        if($form->isValid()){
+            $ticket->updateField($form, $errors);
+        }
+    }
+
+    //valida se a data inserida no json pelo utilizador está no formato correto
     function isValidDateTimeFormat($dateTimeString, $format = 'Y-m-d H:i:s') {
         $dateTimeObj = DateTime::createFromFormat($format, $dateTimeString);
         return $dateTimeObj && $dateTimeObj->format($format) === $dateTimeString;
+    }
+
+    //compara uma data em string no formato correto com uma data
+    function compareStringToDate($stringDate, $date){
+        $dateTimeString = DateTime::createFromFormat('Y-m-d H:i:s', $stringDate);
+        $formattedDateTimeString = $dateTimeString->format('Y-m-d H:i:s');
+
+        return ($formattedDateTimeString === $date);
     }
 
     function suspend($format)
@@ -323,7 +334,7 @@ class TicketApiControllerProjeto extends TicketApiController
     {
         $number = $data['ticketNumber'];
         $ticket = TicketProjeto::lookup(array('number' => $number));
-        $staff = Staff::lookup($key->ht['id_staff']);
+        $staff = Staff::lookup($key->getStaffId());
 
         $comments = $data['comments'];
         
