@@ -251,7 +251,7 @@ class TicketProjeto extends Ticket
 
             //fazer a diferença e dps meter os valores
 
-            $initialDatetime = new DateTime($this->getSLADueDate(true));
+            $initialDatetime = new DateTime($this->getSLADueDate(false));
             
 
             $finalDatetime = clone $initialDatetime;
@@ -293,8 +293,8 @@ class TicketProjeto extends Ticket
             $query .= ', date_end_suspension=NULL';
 
             //definir o due date como null
-            $this->est_duedate = Null;
-            $this->duedate = Null;
+            /* $this->est_duedate = Null;
+            $this->duedate = Null; */
 
             if (!db_query($query))
                 return false;
