@@ -1,7 +1,7 @@
 
 INSERT IGNORE INTO `%TABLE_PREFIX%event` (`id`, `name`) VALUES (22, 'suspended');
 
-CREATE TABLE IF NOT EXISTS `%TABLE_PREFIX%api_key_nova` (
+CREATE TABLE IF NOT EXISTS `%TABLE_PREFIX%api_key_extension` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `isactive` TINYINT(1) NOT NULL,
     `id_staff` VARCHAR(255) NOT NULL,

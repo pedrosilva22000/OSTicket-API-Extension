@@ -30,7 +30,7 @@ return array(
      *
      * @var string
      */
-    'id' => 'proposta15:projeto',
+    'id' => 'proposal-15:extension',
 
     /**
      * Version number of the plugin.
@@ -75,7 +75,7 @@ return array(
      *
      * @var string
      */
-    'plugin' => 'projeto.php:ProjetoPlugin'
+    'plugin' => 'extension.php:PluginExtension'
 );
 
 ?>

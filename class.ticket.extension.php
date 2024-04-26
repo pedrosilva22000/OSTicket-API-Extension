@@ -3,7 +3,7 @@
 include_once INCLUDE_DIR.'class.ticket.php';
 
 //classe que dá override a algumas funções da class api para adaptar a nova tabela api key
-class TicketProjeto extends Ticket{
+class TicketExtension extends Ticket{
 
     //TEMPORARIO SO PARA FAZER TESTES DEPOIS APAGAR
     function debugToFile($erro)

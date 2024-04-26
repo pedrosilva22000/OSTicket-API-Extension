@@ -2,15 +2,15 @@
 include_once 'plugin.config.php';
 require_once 'class.staff.php';
 require_once 'class.plugin.php';
-require_once 'api/class.api.projeto.php';
+require_once 'api/class.api.extension.php';
 require_once 'util/table.installer.php';
 require_once 'config.php';
 
 include INCLUDE_DIR . 'class.dispatcher.php';
 
-class ProjetoPlugin extends Plugin
+class PluginExtension extends Plugin
 {
-	var $config_class = 'ProjetoPluginConfig';
+	var $config_class = 'PluginConfigExtension';
 
 	var $saveInfo = true; //valor defualt
 
@@ -100,6 +100,7 @@ class ProjetoPlugin extends Plugin
 		$installer->runScript(UNINSTALL_SCRIPT);
 	}
 
+	//Não esta a funcionar bem coloca todos os inserts com o mesmo nome de tabela 
 	function storeData($tableNames){
 		//guarda os resultados de cada tabela numa array
 		$tablesArray = array();
@@ -162,7 +163,7 @@ class ProjetoPlugin extends Plugin
 			'notes' => "An API key automatically generated upon the plugin's first run."
 		);
 
-		ApiProjeto::add($data, $erros);
+		ApiExtension::add($data, $erros);
 	}
 
 	function firstRun()
@@ -263,7 +264,7 @@ class ProjetoPlugin extends Plugin
 				$dispatcher->append(
 					url_post(
 						"^/{$route['prefix']}\.(?P<format>xml|json|email)$",
-						array(PRJ_API_DIR.'api.projeto.php:TicketApiControllerProjeto', $route['function'])
+						array(PRJ_API_DIR.'api.extension.php:TicketApiControllerExtension', $route['function'])
 					)
 				);
 			});
@@ -274,7 +275,7 @@ class ProjetoPlugin extends Plugin
 				$dispatcher->append(
 					url_get(
 						"^/{$route['prefix']}\.(?P<format>xml|json|email)$",
-						array(PRJ_API_DIR.'api.projeto.php:TicketApiControllerProjeto', $route['function'])
+						array(PRJ_API_DIR.'api.extension.php:TicketApiControllerExtension', $route['function'])
 					)
 				);
 			});

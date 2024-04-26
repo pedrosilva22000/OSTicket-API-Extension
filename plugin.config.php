@@ -17,11 +17,11 @@ define('STATE_RESOLVED', 5);
 define('STATE_SUSPENDED', 6);
 
 // Define names of database tables.
-define('API_NEW_TABLE', TABLE_PREFIX . 'api_key_nova'); // Table for new API keys.
+define('API_NEW_TABLE', TABLE_PREFIX . 'api_key_extension'); // Table for new API keys.
 define('SUSPEND_NEW_TABLE', TABLE_PREFIX . 'suspended_ticket'); // Table for suspended tickets.
 
 // Define directories to SQL files.
-define('PRJ_PLUGIN_DIR', INCLUDE_DIR . 'plugins/api/'); // Plugin directory.
+define('PRJ_PLUGIN_DIR', INCLUDE_DIR . 'plugins/OSTicket-API-Extension/'); // Plugin directory.
 define('SQL_SCRIPTS_DIR', PRJ_PLUGIN_DIR . 'sql/'); // Directory for SQL scripts.
 define('PRJ_API_DIR', PRJ_PLUGIN_DIR . 'api/'); // Directory for API files.
 

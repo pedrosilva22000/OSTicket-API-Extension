@@ -8,13 +8,13 @@
 // Include necessary files.
 include_once INCLUDE_DIR . 'class.api.php';
 include_once INCLUDE_DIR . 'plugin.config.php';
-include_once PRJ_PLUGIN_DIR . 'class.ticket.projeto.php';
+include_once PRJ_PLUGIN_DIR . 'class.ticket.extension.php';
 /**
- * Class ApiProjeto.
+ * Class ApiExtension.
  *
  * This class extends the API class to adapt to the new API key table.
  */
-class ApiProjeto extends API
+class ApiExtension extends API
 {
 
     /**
@@ -31,8 +31,10 @@ class ApiProjeto extends API
     /**
      * Load API key by ID.
      *
-     * @param int $id The ID of the API key to load.
-     * @return bool True if successful, false otherwise.
+     * @param int
+     *  $id The ID of the API key to load.
+     * @return bool
+     *  True if successful, false otherwise.
      */
     function load($id = 0)
     {
@@ -152,7 +154,7 @@ class ApiProjeto extends API
      */
     static function getSources()
     {
-        $sources = TicketProjeto::getSources();
+        $sources = TicketExtension::getSources();
 
         foreach ($sources as $item) {
             printf("%s\n", $item);
@@ -163,7 +165,7 @@ class ApiProjeto extends API
      * Lookup key object.
      *
      * @param string $key The key of the API key to be looked up.
-     * @return object ApiProjeto with information regarding the API key.
+     * @return object ApiExtension with information regarding the API key.
      */
     static function lookupByKeyPRJ($key)
     {
@@ -191,11 +193,11 @@ class ApiProjeto extends API
      * Lookup
      *
      * @param int $id The ID of the API key to load.
-     * @return object ApiProjeto.
+     * @return object ApiExtension.
      */
     static function lookup($id)
     {
-        return ($id && is_numeric($id) && ($k = new ApiProjeto($id)) && $k->getId() == $id) ? $k : null;
+        return ($id && is_numeric($id) && ($k = new ApiExtension($id)) && $k->getId() == $id) ? $k : null;
     }
 
     /**
@@ -206,7 +208,7 @@ class ApiProjeto extends API
      */
     static function add($vars, &$errors)
     {
-        return ApiProjeto::save(0, $vars, $errors);
+        return ApiExtension::save(0, $vars, $errors);
     }
 
     /**

@@ -1,13 +1,13 @@
 <?php
 
 include_once 'plugin.config.php';
-include_once 'class.api.projeto.php';
+include_once 'class.api.extension.php';
 
 //WIP
-include_once PRJ_PLUGIN_DIR.'class.ticket.projeto.php';
+include_once PRJ_PLUGIN_DIR.'class.ticket.extension.php';
 // include 'debugger.php';
 
-class TicketApiControllerProjeto extends TicketApiController
+class TicketApiControllerExtension extends TicketApiController
 {
 
     //overrride da função já existente mas sem as verificações de ip
@@ -30,7 +30,7 @@ class TicketApiControllerProjeto extends TicketApiController
             !$this->key
             && ($key = $this->getApiKey())
         )
-            $this->key = ApiProjeto::lookupByKeyPRJ($key);
+            $this->key = ApiExtension::lookupByKeyPRJ($key);
 
         return $this->key;
     }
@@ -52,9 +52,9 @@ class TicketApiControllerProjeto extends TicketApiController
         $data['idStaff'] = $staff->getId();
 
         //adiciona uma api key nova ao staff definido e retorna o id da api key se funcionar corretamente
-        $id = ApiProjeto::add($data, $errors);
+        $id = ApiExtension::add($data, $errors);
         //cria um objeto key com o id recebido
-        $key = ApiProjeto::lookup($id);
+        $key = ApiExtension::lookup($id);
 
         //se não existir o objeto key é porque algum erro aconteceu e não foi possivel criar a key nova, se existir respoinde com a api key nova
         if ($key)
@@ -185,7 +185,7 @@ class TicketApiControllerProjeto extends TicketApiController
     function editTicket($data, $key, $source = 'API')
     {
         $number = $data['ticketNumber'];
-        $ticket = TicketProjeto::lookup(array('number' => $number));
+        $ticket = TicketExtension::lookup(array('number' => $number));
 
         $comments = $data['comments'];
 
@@ -333,7 +333,7 @@ class TicketApiControllerProjeto extends TicketApiController
     function suspendTicket($data, $key, $source = 'API')
     {
         $number = $data['ticketNumber'];
-        $ticket = TicketProjeto::lookup(array('number' => $number));
+        $ticket = TicketExtension::lookup(array('number' => $number));
         $staff = Staff::lookup($key->getStaffId());
 
         $comments = $data['comments'];
@@ -351,7 +351,7 @@ class TicketApiControllerProjeto extends TicketApiController
         if (!($key = $this->requireApiKey()) || !$key->canEditTickets())
             return $this->exerr(401, __('API key not authorized'));
         
-        $res = ApiProjeto::getDeps();
+        $res = ApiExtension::getDeps();
 
         $this->response(201, $res);
 
@@ -367,7 +367,7 @@ class TicketApiControllerProjeto extends TicketApiController
         if (!($key = $this->requireApiKey()) || !$key->canEditTickets())
             return $this->exerr(401, __('API key not authorized'));
         
-        $res = ApiProjeto::getSLAS();
+        $res = ApiExtension::getSLAS();
 
         $this->response(201, $res);
 
@@ -383,7 +383,7 @@ class TicketApiControllerProjeto extends TicketApiController
         if (!($key = $this->requireApiKey()) || !$key->canEditTickets())
             return $this->exerr(401, __('API key not authorized'));
         
-        $res = ApiProjeto::getTeams();
+        $res = ApiExtension::getTeams();
 
         $this->response(201, $res);
 
@@ -399,7 +399,7 @@ class TicketApiControllerProjeto extends TicketApiController
         if (!($key = $this->requireApiKey()) || !$key->canEditTickets())
             return $this->exerr(401, __('API key not authorized'));
         
-        $res = ApiProjeto::getStaff();
+        $res = ApiExtension::getStaff();
 
         $this->response(201, $res);
 
@@ -415,7 +415,7 @@ class TicketApiControllerProjeto extends TicketApiController
         if (!($key = $this->requireApiKey()) || !$key->canEditTickets())
             return $this->exerr(401, __('API key not authorized'));
         
-        $res = ApiProjeto::getPiority();
+        $res = ApiExtension::getPiority();
 
         $this->response(201, $res);
 
@@ -431,7 +431,7 @@ class TicketApiControllerProjeto extends TicketApiController
         if (!($key = $this->requireApiKey()) || !$key->canEditTickets())
             return $this->exerr(401, __('API key not authorized'));
         
-        $res = ApiProjeto::getTopic();
+        $res = ApiExtension::getTopic();
 
         $this->response(201, $res);
 
@@ -447,7 +447,7 @@ class TicketApiControllerProjeto extends TicketApiController
         if (!($key = $this->requireApiKey()) || !$key->canEditTickets())
             return $this->exerr(401, __('API key not authorized'));
         
-        $res = ApiProjeto::getSources();
+        $res = ApiExtension::getSources();
 
         $this->response(201, $res);
 

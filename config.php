@@ -1,7 +1,7 @@
 <?php
 require_once(INCLUDE_DIR.'/class.forms.php');
 
-class ProjetoPluginConfig extends PluginConfig {
+class PluginConfigExtension extends PluginConfig {
 
     // Provide compatibility function for versions of osTicket prior to
     // translation support (v1.9.4)

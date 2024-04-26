@@ -1,4 +1,4 @@
-DROP TABLE `%TABLE_PREFIX%api_key_nova`;
+DROP TABLE `%TABLE_PREFIX%api_key_extension`;
 
 DROP TABLE `%TABLE_PREFIX%suspended_ticket`;
 
