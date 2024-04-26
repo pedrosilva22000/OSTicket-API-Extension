@@ -209,6 +209,13 @@ class ApiProjeto extends API
         return ApiProjeto::save(0, $vars, $errors);
     }
 
+    /**
+     * Save
+     *
+     * @param array $vars
+     * @param int $id 
+     * @return boolean
+     */
     static function save($id, $vars, &$errors)
     {
         if ($errors) return false;
