@@ -176,7 +176,7 @@ class TicketApiControllerExtension extends TicketApiController
 
     function debugToFile($erro)
     {
-        $file = INCLUDE_DIR . "plugins/api/debug.txt";
+        $file = PRJ_PLUGIN_DIR . "debug.txt";
         $text =  $erro . "\n";
         file_put_contents($file, $text, FILE_APPEND | LOCK_EX);
     }
@@ -323,10 +323,10 @@ class TicketApiControllerExtension extends TicketApiController
 
         $ticket = $this->suspendTicket($this->getRequest($format), $key);
 
-        if ($ticket){
-            $response = ($ticket->getStatus() == "Open") ? " Unsuspended" : " Suspended";
-            $this->response(201, "Ticket ".$ticket->getNumber().$response);
-        } 
+        if ($ticket)
+            $ticket->getStatus() == TicketStatus::lookup(STATE_SUSPENDED) ?
+                $this->response(201, "Ticket ".$ticket->getNumber()." Suspendeded") :
+                $this->response(201, "Ticket ".$ticket->getNumber()." Unsuspended");
         else
             $this->exerr(500, _S("unknown error"));
     }

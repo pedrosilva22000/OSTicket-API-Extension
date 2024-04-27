@@ -116,32 +116,35 @@ class PluginExtension extends Plugin
 			$array = db_assoc_array($res);
 
 			//guarda o resultado desta tabela na array de tabelas
-			$tablesArray[] = $array;
-
-			// foreach ($array as $arr) {
-			// 	foreach ($arr as $key => $a) {
-			// 		Debugger::debugToFile($key . ": " . $a);
-			// 	}
-			// }
+			$tablesArray[$tableName] = $array;
 		}
 
 		//guarda os inserts todos no ficheiro sql
 		$file = fopen(SAVED_DATA_SQL, 'w');
 
-		foreach($tablesArray as $array){
+		foreach($tablesArray as $tableName => $array){
+
+			$columns = array_keys($array[0]);
+
+			$valuesArrays = array_fill(0, count($columns), array());
+
 			foreach ($array as $arr) {
-				$columns = array_keys($arr);
-				$values = array_map(function ($value) {
-					return "'" . addslashes($value) . "'";
-				}, $arr);
-	
-				$insertSQL = "INSERT INTO `$tableName` (" . implode(", ", array_map(function($column) {
-					return "`$column`";
-				}, $columns)) . ")\n VALUES (" . implode(", ", $values) . ");\n\n";
-				
-	
-				fwrite($file, $insertSQL);
+				foreach ($columns as $index => $column) {
+					$valuesArrays[$index][] = "'" . addslashes($arr[$column]) . "'";
+				}
 			}
+
+			$insertSQL = "INSERT INTO `$tableName` (" . implode(", ", array_map(function($column) {
+                return "`$column`";
+            }, $columns)) . ")\n VALUES ";
+
+			foreach ($valuesArrays[0] as $rowIndex => $value) {
+				$insertSQL .= "(" . implode(", ", array_column($valuesArrays, $rowIndex)) . "),\n";
+			}
+
+			$insertSQL = rtrim($insertSQL, ",\n") . ";\n\n";
+
+			fwrite($file, $insertSQL);
 		}
 
 		fclose($file);
@@ -160,7 +163,7 @@ class PluginExtension extends Plugin
 			'canReopenTickets' => "1",
 			'canEditTickets' => "1",
 			'canSuspendTickets' => "1",
-			'notes' => "An API key automatically generated upon the plugin's first run."
+			'notes' => "An API key automatically generated upon the plugin first run."
 		);
 
 		ApiExtension::add($data, $erros);
@@ -187,7 +190,7 @@ class PluginExtension extends Plugin
 	//PARA TESTES APAGAR DEPOIS
 	function debugToFile($erro)
     {
-        $file = INCLUDE_DIR . "plugins/api/debug.txt";
+        $file = PRJ_PLUGIN_DIR . "debug.txt";
         $text =  $erro . "\n";
         file_put_contents($file, $text, FILE_APPEND | LOCK_EX);
     }
@@ -282,8 +285,7 @@ class PluginExtension extends Plugin
 		}
 	}
 
-	//PORQUE É QUE ISTO NAO FUNCIONA
-	//COISAS QUE ESTAVA A TESTAR PARA DESINSTALAR AS TAVELAS QUANDO SE APAGA O PLUGIN MAS NAO FUNCIONA POR ENQUANTO
+	//OS PLUGINS DO OSTICKET NAO SUPORTAM ESTES METODOS NESTA VERSAO, PARA DESINSTALAR É NECESSÁRIO USAR O DISABLE
 	function pre_uninstall(&$errors) {
 		$this->debugToFile('PRE_UNINSTALL');
         return true;
