@@ -323,8 +323,10 @@ class TicketApiControllerExtension extends TicketApiController
 
         $ticket = $this->suspendTicket($this->getRequest($format), $key);
 
-        if ($ticket)
-            $this->response(201, $ticket->getNumber());
+        if ($ticket){
+            $response = ($ticket->getStatus() == "Open") ? " Unsuspended" : " Suspended";
+            $this->response(201, "Ticket ".$ticket->getNumber().$response);
+        } 
         else
             $this->exerr(500, _S("unknown error"));
     }
