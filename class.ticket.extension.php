@@ -137,7 +137,7 @@ class TicketExtension extends Ticket{
 
         $fieldLabels = array();
         foreach($fields as $field){
-            if($field != 'dept' || $field != 'staff' || $field != 'team'){
+            if($field != 'dept' && $field != 'staff' && $field != 'team'){
                 $fieldLabels[] = $this->getField($field)->getLabel();
             }
         }
