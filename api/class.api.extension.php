@@ -56,19 +56,20 @@ class ApiExtension extends API
     /**
      * Get department id and name.
      * 
-     * @return boolean true if query worked, false if not
+     * @return mixed (string or boolean) string with results from query, false if query didnt work
      */
     static function getDeps()
     {
         $sql = 'SELECT id, signature AS NomeDepartamento FROM ' . DEPT_TABLE;
 
         if (($res = db_query($sql))) {
+            $result = '';
             while ($row = $res->fetch_row()) {
-                printf("%s - %s\n", $row[0], $row[1]);
+                $result .= sprintf("%s - %s\n", $row[0], $row[1]);
             }
-
+            $result = rtrim($result, "\n");
             $res->free_result();
-            return true;
+            return $result;
         }
         return false;
     }
@@ -76,19 +77,20 @@ class ApiExtension extends API
     /**
      * Get SLA (Service Level Agreement) id and name.
      * 
-     * @return boolean true if query worked, false if not
+     * @return mixed (string or boolean) string with results from query, false if query didnt work
      */
     static function getSLAS()
     {
         $sql = 'SELECT id, name AS SLA FROM ' . SLA_TABLE;
 
         if (($res = db_query($sql))) {
+            $result = '';
             while ($row = $res->fetch_row()) {
-                printf("%s - %s\n", $row[0], $row[1]);
+                $result .= sprintf("%s - %s\n", $row[0], $row[1]);
             }
-
+            $result = rtrim($result, "\n");
             $res->free_result();
-            return true;
+            return $result;
         }
         return false;
     }
@@ -96,19 +98,20 @@ class ApiExtension extends API
     /**
      * Get Teams id, name and notes.
      * 
-     * @return boolean true if query worked, false if not
+     * @return mixed (string or boolean) string with results from query, false if query didnt work
      */
     static function getTeams()
     {
         $sql = 'SELECT team_id, name, notes FROM ' . TEAM_TABLE;
 
         if (($res = db_query($sql))) {
+            $result = '';
             while ($row = $res->fetch_row()) {
-                printf("%s - %s (%s)\n", $row[0], $row[1], $row[2]);
+                $result .= sprintf("%s - %s (%s)\n", $row[0], $row[1], $row[2]);
             }
-
+            $result = rtrim($result, "\n");
             $res->free_result();
-            return true;
+            return $result;
         }
         return false;
     }
@@ -116,7 +119,7 @@ class ApiExtension extends API
     /**
      * Get Staff id, username, first name, last name and email.
      * 
-     * @return boolean true if query worked, false if not
+     * @return mixed (string or boolean) string with results from query, false if query didnt work
      */
     static function getStaff()
     {
@@ -124,12 +127,13 @@ class ApiExtension extends API
         $sql = 'SELECT staff_id, firstname, lastname, username, email FROM ' . STAFF_TABLE;
 
         if (($res = db_query($sql))) {
+            $result = '';
             while ($row = $res->fetch_row()) {
-                printf("%s - %s %s (%s - %s)\n", $row[0], $row[1], $row[2], $row[3], $row[4]);
+                $result .= sprintf("%s - %s %s (%s - %s)\n", $row[0], $row[1], $row[2], $row[3], $row[4]);
             }
-
+            $result = rtrim($result, "\n");
             $res->free_result();
-            return true;
+            return $result;
         }
         return false;
     }
@@ -137,7 +141,7 @@ class ApiExtension extends API
     /**
      * Get Users id, username and email.
      * 
-     * @return boolean true if query worked, false if not
+     * @return mixed (string or boolean) string with results from query, false if query didnt work
      */
     static function getUsers()
     {
@@ -146,13 +150,13 @@ class ApiExtension extends API
         LEFT JOIN '. USER_EMAIL_TABLE . ' e ON u.id = e.id ORDER BY u.id;';
 
         if (($res = db_query($sql))) {
+            $result = '';
             while ($row = $res->fetch_row()) {
-                printf("%s - %s (%s)\n", $row[0], $row[1], $row[2]);
+                $result .= sprintf("%s - %s (%s)\n", $row[0], $row[1], $row[2]);
             }
-
+            $result = rtrim($result, "\n");
             $res->free_result();
-
-            return true;
+            return $result;
         }
         return false;
     }
@@ -160,19 +164,20 @@ class ApiExtension extends API
     /**
      * Get Priority id and description.
      * 
-     * @return boolean true if query worked, false if not
+     * @return mixed (string or boolean) string with results from query, false if query didnt work
      */
     static function getPiority()
     {
         $sql = 'SELECT priority_id, priority_desc FROM ' . TICKET_PRIORITY_TABLE;
 
         if (($res = db_query($sql))) {
+            $result = '';
             while ($row = $res->fetch_row()) {
-                printf("%s - %s\n", $row[0], $row[1]);
+                $result .= sprintf("%s - %s\n", $row[0], $row[1]);
             }
-
+            $result = rtrim($result, "\n");
             $res->free_result();
-            return true;
+            return $result;
         }
         return false;
     }
@@ -180,34 +185,37 @@ class ApiExtension extends API
     /**
      * Get Topic id, name and notes.
      * 
-     * @return boolean true if query worked, false if not
+     * @return mixed (string or boolean) string with results from query, false if query didnt work
      */
     static function getTopic()
     {
         $sql = 'SELECT topic_id, topic, notes FROM ' . TOPIC_TABLE;
 
         if (($res = db_query($sql))) {
+            $result = '';
             while ($row = $res->fetch_row()) {
-                printf("%s - %s (%s)\n", $row[0], $row[1], $row[2]);
+                $result .= sprintf("%s - %s (%s)\n", $row[0], $row[1], $row[2]);
             }
-
+            $result = rtrim($result, "\n");
             $res->free_result();
-            return true;
+            return $result;
         }
         return false;
     }
     /**
      * Get Source name.
      * 
-     * @return boolean true if TicketExtension::getSources() worked, false if not
+     * @return mixed (string or boolean) string with results from TicketExtension::getSources(), false if it didnt work
      */
     static function getSources()
     {
         if($sources = TicketExtension::getSources()){
+            $result = '';
             foreach ($sources as $item) {
-                printf("%s\n", $item);
+                $result .= sprintf("%s\n", $item);
             }
-            return true;
+            $result = rtrim($result, "\n");
+            return $result;
         }
         return false;
     }
