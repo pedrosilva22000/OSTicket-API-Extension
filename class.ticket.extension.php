@@ -17,7 +17,7 @@ class TicketExtension extends Ticket{
         return ($old != $new) ? array($old, $new) : false;
     }
 
-    function editFields($field, $newValue, $comments, $refer=false){
+    function editFields($field, $newValue, $refer=false){
         global $thisstaff, $cfg;
 
         switch ($field) {
@@ -78,24 +78,6 @@ class TicketExtension extends Ticket{
             // Log transfer event
             $this->logEvent('transferred', array('dept' => $dept->getName()));
 
-            $note = null;
-            if ($comments) {
-                $title = sprintf(
-                    __('%1$s transferred from %2$s to %3$s'),
-                    __('Ticket'),
-                    $oldValue->getName(),
-                    $dept->getName()
-                );
-
-                $_errors = array();
-                $note = $this->postNote(
-                    array('note' => $comments, 'title' => $title),
-                    $_errors,
-                    $thisstaff,
-                    false
-                );
-            }
-
             //REFERS OLD DEPT IF REFER IS TRUE
             if ($refer && $oldValue)
                 $this->getThread()->refer($oldValue);
@@ -114,13 +96,13 @@ class TicketExtension extends Ticket{
     function addComments($comments, $fields, $staffAssignee=null, $teamAssignee=null){
         global $thisstaff;
 
-        if(!$comments || (empty($fields) && !$staffAssignee && !$teamAssignee)){
+        if(!$comments || (empty($fields))){
             return false;
         }
 
         $fieldLabels = array();
         foreach($fields as $field){
-            if($field != 'dept'){
+            if($field != 'dept' || $field != 'staff' || $field != 'team'){
                 $fieldLabels[] = $this->getField($field)->getLabel();
             }
         }

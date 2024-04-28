@@ -1,16 +1,35 @@
 <?php
 
+/**
+ * @file
+ * TicketAPIControler class extension for the OSTicket API Extension plugin.
+ */
+
 include_once 'plugin.config.php';
 include_once 'class.api.extension.php';
-
-//WIP
 include_once PRJ_PLUGIN_DIR.'class.ticket.extension.php';
-// include 'debugger.php';
 
+/**
+ * Class ApiExtension.
+ *
+ * This class extends the TicketApiController class to use our own endpoints.
+ */
 class TicketApiControllerExtension extends TicketApiController
 {
+    //FUNCAO TEMPORARIA DE DEBUG APAGAR DEPOIS
+    function debugToFile($erro)
+    {
+        $file = PRJ_PLUGIN_DIR . "debug.txt";
+        $text =  $erro . "\n";
+        file_put_contents($file, $text, FILE_APPEND | LOCK_EX);
+    }
 
-    //overrride da função já existente mas sem as verificações de ip
+    /**
+     * Verifies if the API key sent as X-API-Key in the HTTP header is valid, exists and is active.
+     * Overrides the function with the same name in TicketApiController but removes all IP verifications.
+     * 
+     * @return object ApiExtension.
+     */
     function requireApiKey()
     {
         // Require a valid API key sent as X-API-Key HTTP header
@@ -23,7 +42,12 @@ class TicketApiControllerExtension extends TicketApiController
         return $key;
     }
 
-    //overrride da função já existente mas sem as verificações de ip
+    /**
+     * Gets the objecto of the API key sent as X-API-Key in the HTTP header is valid, exists and is active.
+     * Overrides the function with the same name in TicketApiController but removes all IP verifications.
+     * 
+     * @return object ApiExtension.
+     */
     function getKey()
     {
         if (
@@ -35,20 +59,36 @@ class TicketApiControllerExtension extends TicketApiController
         return $this->key;
     }
 
-    //função chamada no endpoint/url requestApiKey
+    /**
+     * Function executed when the endpoint/url requestApiKey/tickets is called.
+     * 
+     * Verifies if the staff specified exists, if the person making the request is an admin,
+     * and if the password inserted matches the password of the person making the request.
+     * 
+     * Adds a new API key and deactivates the old one to the specified staff, 
+     * if no staff is specified, the API key is added to the admin making the request.
+     * 
+     * Makes a response with the new API key.
+     * If there are errors response has code 500 and specified error.
+     * 
+     * @param object $format Json sent in the HTTP body.
+     */
     function requestApiKey($format)
     {
         //trata a informação do json
         $data = $this->getRequest($format);
 
+        //se nao existir $data['staff'] entao o staff é igual ao admin
+        $data['staff'] ? 
+        ($staff = Staff::lookup($data['staff'])) && ($admin = Staff::lookup($data['admin'])) : 
+        ($staff = $admin = Staff::lookup($data['admin']));
+
         //validacao do admin (password corresponde ao username e se é admin) e se existe o staff que vai receber a nova api key
-        $staff = Staff::lookup($data['staff']);
-        $admin = Staff::lookup($data['admin']);
-        if (!$staff || !$admin->check_passwd($data['adminPassword']) || !$admin->isAdmin()) {
+        if (!$staff || !$admin->isAdmin() || !$admin->check_passwd($data['adminPassword'])) {
             return false;
         }
 
-        //id do staff é passado para a variavel $data (no json é passado o nome do user, não o id)
+        //id do staff é passado para a variavel $data (no json pode ser passado o nome ou no email do user, não o id)
         $data['idStaff'] = $staff->getId();
 
         //adiciona uma api key nova ao staff definido e retorna o id da api key se funcionar corretamente
@@ -58,12 +98,24 @@ class TicketApiControllerExtension extends TicketApiController
 
         //se não existir o objeto key é porque algum erro aconteceu e não foi possivel criar a key nova, se existir respoinde com a api key nova
         if ($key)
-            $this->response(201, $key->getKey());
+            $this->response(201, _S('New key ').$key->getKey()._S(' added to ').$staff->getName());
         else
             $this->exerr(500, _S("unknown error"));
     }
 
-    //overrride da função já existente mas verifica a api key com a nova tabela
+    /**
+     * Function executed when the endpoint/url create/tickets is called.
+     * Overrides the function with the same name in TicketApiController to use our own API keys.
+     * 
+     * Verifies if the key is valid and has permission to create tickets.
+     * 
+     * Creates a new ticket with the values inserted.
+     * 
+     * Makes a response with the created ticket number.
+     * If there are errors response has code 500 and specified error.
+     * 
+     * @param object $format Json sent in the HTTP body.
+     */
     function create($format)
     {
 
@@ -76,13 +128,24 @@ class TicketApiControllerExtension extends TicketApiController
         $ticket = $this->createTicket($data);
 
         if ($ticket)
-            $this->response(201, "Ticket ".$ticket->getNumber()." Created");
+            $this->response(201, _S("Ticket ").$ticket->getNumber()._S(" Created"));
         else
             $this->exerr(500, _S("unknown error"));
     }
 
 
-    //função chamada no endpoint/url close, fecha um ticket, igual ao open mas verifica se pode fechar
+    /**
+     * Function executed when the endpoint/url close/tickets is called.
+     * 
+     * Verifies if the key is valid and has permission to close tickets.
+     * 
+     * Closes the specified ticket.
+     * 
+     * Makes a response with the closed ticket number.
+     * If there are errors response has code 500 and specified error.
+     * 
+     * @param object $format Json sent in the HTTP body.
+     */
     function close($format)
     {
 
@@ -98,7 +161,16 @@ class TicketApiControllerExtension extends TicketApiController
             $this->exerr(500, _S("unknown error"));
     }
 
-    function closeTicket($data, $key, $source = 'API')
+    /**
+     * Changes the status of a ticket to closed, with the specified comments.
+     * 
+     * @param array $data Array with the values from the Json sent in the HTTP body.
+     * @param object $key ApiExtension, the key used to call this endpoint.
+     * @param string $source = 'API'.
+     * 
+     * @return object Ticket, the ticket that was closed, if ticket was not closed returns false.
+     */
+    function closeTicket($data, $key, $source = 'API') //source nao esta a fazer nada ja nao me lembro porque
     {
         //variavel global que indica o staff que esta a fazer o pedido da api
         global $thisstaff;
@@ -120,8 +192,21 @@ class TicketApiControllerExtension extends TicketApiController
         }
         //adicionar tabela para saber a source que fechou talvez
 
+        return false;
     }
 
+    /**
+     * Function executed when the endpoint/url reopen/tickets is called.
+     * 
+     * Verifies if the key is valid and has permission to reopen tickets.
+     * 
+     * Reopens the specified ticket.
+     * 
+     * Makes a response with the reopened ticket number.
+     * If there are errors response has code 500 and specified error.
+     * 
+     * @param object $format Json sent in the HTTP body.
+     */
     function reopen($format)
     {
         if (!($key = $this->requireApiKey()) || !$key->canReopenTickets())
@@ -136,6 +221,15 @@ class TicketApiControllerExtension extends TicketApiController
             $this->exerr(500, _S("unknown error"));
     }
 
+    /**
+     * Changes the status of a ticket to open, with the specified comments.
+     * 
+     * @param array $data Array with the values from the Json sent in the HTTP body.
+     * @param object $key ApiExtension, the key used to call this endpoint.
+     * @param string $source = 'API'.
+     * 
+     * @return object Ticket, the ticket that was reopened, if ticket was not reopened returns false.
+     */
     function reopenTicket($data, $key, $source = 'API')
     {
         //variavel global que indica o staff que esta a fazer o pedido da api
@@ -157,8 +251,22 @@ class TicketApiControllerExtension extends TicketApiController
             return $ticket;
         }
         //adicionar tabela para saber a source que fechou talvez
+
+        return false;
     }
 
+    /**
+     * Function executed when the endpoint/url edit/tickets is called.
+     * 
+     * Verifies if the key is valid and has permission to edit tickets.
+     * 
+     * Edits the specified ticket.
+     * 
+     * Makes a response with the edited ticket number.
+     * If there are errors response has code 500 and specified error.
+     * 
+     * @param object $format Json sent in the HTTP body.
+     */
     function edit($format)
     {
         if (!($key = $this->requireApiKey()) || !$key->canEditTickets())
@@ -174,14 +282,15 @@ class TicketApiControllerExtension extends TicketApiController
             $this->exerr(500, _S("unknown error"));
     }
 
-    function debugToFile($erro)
-    {
-        $file = PRJ_PLUGIN_DIR . "debug.txt";
-        $text =  $erro . "\n";
-        file_put_contents($file, $text, FILE_APPEND | LOCK_EX);
-    }
-
-    //WIP
+    /**
+     * Edits the specified fields of a ticket, with the specified comments.
+     * 
+     * @param array $data Array with the values from the Json sent in the HTTP body.
+     * @param object $key ApiExtension, the key used to call this endpoint.
+     * @param string $source = 'API'.
+     * 
+     * @return object Ticket, the ticket that was edited, if ticket was not edited returns false.
+     */
     function editTicket($data, $key, $source = 'API')
     {
         $number = $data['ticketNumber'];
@@ -214,6 +323,7 @@ class TicketApiControllerExtension extends TicketApiController
             if ($ticket->getStaffId() != $staff->getId()) {
                 $ticket->assignToStaff($staff, '', user: $thisstaffuser);
                 $staffAssignee = $staff;
+                $fields[] = 'staff';
             }
         }
 
@@ -226,6 +336,7 @@ class TicketApiControllerExtension extends TicketApiController
             if ($ticket->getTeamId() != $data['team']) {
                 $ticket->assignToTeam($team, '', user: $thisstaffuser);
                 $teamAssignee = $team;
+                $fields[] = 'team';
             }
         }
 
@@ -258,14 +369,14 @@ class TicketApiControllerExtension extends TicketApiController
 
         // //dept
         if($data['dept'] && $data['dept'] != $ticket->getDeptId()){
-            $ticket->editFields('dept', $data['dept'], '', $data['refer']);
+            $ticket->editFields('dept', $data['dept'], $data['refer']);
             $fields[] = 'dept';
         }
         // //dept
 
         // //priority
         if ($data['priority'] && $data['priority'] != $ticket->getPriorityId()){
-            $ticket->editFields('priority', $data['priority'], '');
+            $ticket->editFields('priority', $data['priority']);
             $fields[] = 'priority';
         }
         // //priority
@@ -279,7 +390,8 @@ class TicketApiControllerExtension extends TicketApiController
 
         //Adiciona SÓ UM comentario para todas as alteracoes
         //para se ter comentarios separados tem de se alterar os valores um de cada vez
-        $notes = $ticket->addComments($comments, $fields, $staffAssignee, $teamAssignee);
+        if(!empty($fields))
+            $notes = $ticket->addComments($comments, $fields, $staffAssignee, $teamAssignee);
 
         //alerta do departamento (se for alterado), tem de estar no fim porque usa os comentarios (notes)
         $alert = $data['alert'];
@@ -287,9 +399,17 @@ class TicketApiControllerExtension extends TicketApiController
             $ticket->alerts($notes);
         }
 
-        return $ticket;
+        //se nenhum valor foi alterado return false
+        return !empty($fields) ? $ticket : false;
     }
 
+     /**
+     * Simulates the POST sent in the OSTicket interface when editing a field.
+     * 
+     * @param object $ticket Ticket, ticket of the field being edited.
+     * @param string $fieldString A string with the name of the field being edited.
+     * @param string $data The new value of the field sent in the body of the HTTP.
+     */
     function simulatePost($ticket, $fieldString, $data){
         $field = $ticket->getField($fieldString);
         $post = array("","","");
@@ -300,13 +420,27 @@ class TicketApiControllerExtension extends TicketApiController
         }
     }
 
-    //valida se a data inserida no json pelo utilizador está no formato correto
+    /**
+     * Validates if the date sent in the HTTP body is valid.
+     * 
+     * @param string $dateTimeString Date sent in the HTTP body.
+     * @param string $format Correct format the date sent should have.
+     * 
+     * @return boolean true if the date sent is in the correct format, false if not
+     */
     function isValidDateTimeFormat($dateTimeString, $format = 'Y-m-d H:i:s') {
         $dateTimeObj = DateTime::createFromFormat($format, $dateTimeString);
         return $dateTimeObj && $dateTimeObj->format($format) === $dateTimeString;
     }
 
-    //compara uma data em string no formato correto com uma data
+    /**
+     * Compares a date in a string to a date in DateTime.
+     * 
+     * @param string $stringDate date in string.
+     * @param DateTime $date date in DateTime.
+     * 
+     * @return boolean true if both dates are the same, false if not
+     */
     function compareStringToDate($stringDate, $date){
         $dateTimeString = DateTime::createFromFormat('Y-m-d H:i:s', $stringDate);
         $formattedDateTimeString = $dateTimeString->format('Y-m-d H:i:s');
@@ -314,6 +448,18 @@ class TicketApiControllerExtension extends TicketApiController
         return ($formattedDateTimeString === $date);
     }
 
+    /**
+     * Function executed when the endpoint/url suspend/tickets is called.
+     * 
+     * Verifies if the key is valid and has permission to suspend tickets.
+     * 
+     * Suspends/Unsuspends the specified ticket.
+     * 
+     * Makes a response with the suspended/unsuspended ticket number.
+     * If there are errors response has code 500 and specified error.
+     * 
+     * @param object $format Json sent in the HTTP body.
+     */
     function suspend($format)
     {
         if (!($key = $this->requireApiKey()) || !$key->canSuspendTickets())
@@ -331,7 +477,15 @@ class TicketApiControllerExtension extends TicketApiController
             $this->exerr(500, _S("unknown error"));
     }
 
-    /* SuspendTicket(data,api) */
+    /**
+     * Changes the status of a ticket to suspend or open, depending on the previous status, with the specified comments.
+     * 
+     * @param array $data Array with the values from the Json sent in the HTTP body.
+     * @param object $key ApiExtension, the key used to call this endpoint.
+     * @param string $source = 'API'.
+     * 
+     * @return object Ticket, the ticket that was suspended/unsuspended, if ticket was not suspended/unsuspended returns false.
+     */
     function suspendTicket($data, $key, $source = 'API')
     {
         $number = $data['ticketNumber'];
@@ -346,8 +500,17 @@ class TicketApiControllerExtension extends TicketApiController
         if ($ticket->setSuspend(comments: $comments)) {
             return $ticket;
         }
+        return false;
     }
 
+    /**
+     * Function executed when the endpoint/url departments is called.
+     * 
+     * Gets all departments.
+     * 
+     * Makes a response with all departments.
+     * If there are errors response has code 500 and specified error.
+     */
     function showDeps(){
 
         if (!($key = $this->requireApiKey()) || !$key->canEditTickets())
@@ -364,6 +527,14 @@ class TicketApiControllerExtension extends TicketApiController
         
     }
 
+    /**
+     * Function executed when the endpoint/url slas is called.
+     * 
+     * Gets all slas.
+     * 
+     * Makes a response with all slas.
+     * If there are errors response has code 500 and specified error.
+     */
     function showSLAs(){
 
         if (!($key = $this->requireApiKey()) || !$key->canEditTickets())
@@ -380,6 +551,14 @@ class TicketApiControllerExtension extends TicketApiController
 
     }
 
+    /**
+     * Function executed when the endpoint/url teams is called.
+     * 
+     * Gets all teams.
+     * 
+     * Makes a response with all teams.
+     * If there are errors response has code 500 and specified error.
+     */
     function showTeams(){
 
         if (!($key = $this->requireApiKey()) || !$key->canEditTickets())
@@ -396,6 +575,14 @@ class TicketApiControllerExtension extends TicketApiController
 
     }
 
+    /**
+     * Function executed when the endpoint/url staff is called.
+     * 
+     * Gets all staff.
+     * 
+     * Makes a response with all staff.
+     * If there are errors response has code 500 and specified error.
+     */
     function showStaff(){
 
         if (!($key = $this->requireApiKey()) || !$key->canEditTickets())
@@ -412,6 +599,14 @@ class TicketApiControllerExtension extends TicketApiController
 
     }
 
+    /**
+     * Function executed when the endpoint/url priorities is called.
+     * 
+     * Gets all priorities.
+     * 
+     * Makes a response with all priorities.
+     * If there are errors response has code 500 and specified error.
+     */
     function showPriority(){
 
         if (!($key = $this->requireApiKey()) || !$key->canEditTickets())
@@ -428,6 +623,14 @@ class TicketApiControllerExtension extends TicketApiController
 
     }
 
+    /**
+     * Function executed when the endpoint/url topics is called.
+     * 
+     * Gets all topics.
+     * 
+     * Makes a response with all topics.
+     * If there are errors response has code 500 and specified error.
+     */
     function showTopic(){
 
         if (!($key = $this->requireApiKey()) || !$key->canEditTickets())
@@ -444,6 +647,14 @@ class TicketApiControllerExtension extends TicketApiController
 
     }
 
+    /**
+     * Function executed when the endpoint/url sources is called.
+     * 
+     * Gets all sources.
+     * 
+     * Makes a response with all sources.
+     * If there are errors response has code 500 and specified error.
+     */
     function showSources(){
 
         if (!($key = $this->requireApiKey()) || !$key->canEditTickets())
