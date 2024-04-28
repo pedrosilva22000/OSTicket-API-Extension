@@ -1,5 +1,10 @@
 <?php
 
+/**
+ * @file
+ * Ticket class extension for the OSTicket API Extension plugin.
+ */
+
 include_once INCLUDE_DIR.'class.ticket.php';
 
 //classe que dá override a algumas funções da class api para adaptar a nova tabela api key
@@ -13,10 +18,28 @@ class TicketExtension extends Ticket{
         file_put_contents($file, $text, FILE_APPEND | LOCK_EX);
     }
 
+    /**
+     * Gets an array with the old and the new value
+     * 
+     * @param mixed $new New value.
+     * @param mixed $old Old value.
+     * 
+     * @return mixed (array or boolean) array if value are diferent, false if not.
+     */
     function getChanges($new, $old) {
         return ($old != $new) ? array($old, $new) : false;
     }
 
+    /**
+     * Edits the values of the fields Department ('dept') and Priority ('priority') and all the changes associated with them.
+     * Used instead of updateFields() and transfer().
+     * 
+     * @param string $field Name of the field.
+     * @param mixed $newValue New value of the field.
+     * @param boolean $refer (false by default) When transfering departments if there should be a reference to the old department.
+     * 
+     * @return boolean true if no errors, false if errors.
+     */
     function editFields($field, $newValue, $refer=false){
         global $thisstaff, $cfg;
 
@@ -93,6 +116,18 @@ class TicketExtension extends Ticket{
         return true;
     }
     
+    /**
+     * Adds a comment to the ticket with the comments sent.
+     * In the title it shows all fields changed.
+     * 
+     * @param string $comments comments to add.
+     * @param array $fields array with the name of the fields changed.
+     * @param Staff $staffAssignee (null by default) new staff assigned to the ticket.
+     * @param Team $staffAssignee (null by default) new team assigned to the ticket.
+     * 
+     * @return mixed (ThreadEntry or boolean) note to alert when the ticket is transfered to a new department, 
+     * false if there are no comments and no fields were changed.
+     */
     function addComments($comments, $fields, $staffAssignee=null, $teamAssignee=null){
         global $thisstaff;
 
@@ -163,8 +198,16 @@ class TicketExtension extends Ticket{
         return $note;
     }
 
+    /**
+     * Alerts made when transfering ticket to a new department.
+     * 
+     * @param ThreadEntry $note comment made when ticket was transfered.
+     */
     function alerts($note){
         global $thisstaff, $cfg;
+        if(!$note)
+            $note = null;
+
         $dept = $this->getDept();
 
         if (
@@ -222,28 +265,52 @@ class TicketExtension extends Ticket{
         }
     }
 
-    //POR TESTAR
+    /**
+     * Sets ticket priority to the priority with the specified id.
+     * 
+     * @param int $priorityId id of the new priority.
+     * 
+     * @return boolean true if saved succefully, false if not
+     */
     function setPriorityId($priorityId)
     {
+        //ticket priority já é o que é suposto
         if ($priorityId == $this->getPriorityId())
             return true;
 
+        //nao existe priority com essa priority id
         if ($priorityId && !($priority = Priority::lookup($priorityId)))
             return false;
 
+        //muda os valores da priority no field priority do ticket
         $this->getAnswer('priority')->setValue($priority);
         $this->getAnswer('priority')->save(true);
 
+        //altera tambem na tabela entry value porque pelo field nao altera aqui
         $this->setFormEntryValueId($priorityId);
 
         return $this->save(true);
     }
 
+    /**
+     * Executes a query to change the id of the priority in the table FORM_ANSWER_TABLE.
+     * 
+     * @param int $newValue id of the new priority.
+     */
     function setFormEntryValueId($newValue){
         $sql = "UPDATE ".FORM_ANSWER_TABLE." SET value_id = ".$newValue." WHERE entry_id=(SELECT id FROM ".FORM_ENTRY_TABLE." WHERE object_id = ".$this->getId().")";
         db_query($sql);
     }
 
+    /**
+     * Changes the status of the ticket to suspend or open depending on the prior status of the ticket.
+     * When a ticket is suspended the number of the ticket and the date is stored in a table. 
+     * When unsuspended the date is also stored in the same row and the due date of the ticket is recalculated to not count
+     * the time when the ticket was suspended.
+     * 
+     * @param string $comments comments made when suspending/unsuspending ticket.
+     * @param string $errors errors found so far.
+     */
     function setSuspend($comments = '', &$errors = array())
     {
         global $cfg, $thisstaff;
@@ -361,6 +428,12 @@ class TicketExtension extends Ticket{
         return true;
     }
 
+    /**
+     * Gets all the sources defined in the protected variable $sources.
+     * These are the possible sources a ticket can have.
+     * 
+     * @return array array with the string value of every source.
+     */
     static function getSources(){
         return Ticket::$sources;
     }

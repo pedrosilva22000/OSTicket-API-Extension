@@ -168,7 +168,7 @@ class TicketApiControllerExtension extends TicketApiController
      * @param object $key ApiExtension, the key used to call this endpoint.
      * @param string $source = 'API'.
      * 
-     * @return object Ticket, the ticket that was closed, if ticket was not closed returns false.
+     * @return mixed (Ticket or boolean) the ticket that was closed, if ticket was not closed returns false.
      */
     function closeTicket($data, $key, $source = 'API') //source nao esta a fazer nada ja nao me lembro porque
     {
@@ -228,7 +228,7 @@ class TicketApiControllerExtension extends TicketApiController
      * @param object $key ApiExtension, the key used to call this endpoint.
      * @param string $source = 'API'.
      * 
-     * @return object Ticket, the ticket that was reopened, if ticket was not reopened returns false.
+     * @return mixed (Ticket or boolean) the ticket that was reopened, if ticket was not reopened returns false.
      */
     function reopenTicket($data, $key, $source = 'API')
     {
@@ -284,12 +284,13 @@ class TicketApiControllerExtension extends TicketApiController
 
     /**
      * Edits the specified fields of a ticket, with the specified comments.
+     * Adds ONLY ONE comment per API call.
      * 
      * @param array $data Array with the values from the Json sent in the HTTP body.
      * @param object $key ApiExtension, the key used to call this endpoint.
      * @param string $source = 'API'.
      * 
-     * @return object Ticket, the ticket that was edited, if ticket was not edited returns false.
+     * @return mixed (Ticket or boolean) the ticket that was edited, if ticket was not edited returns false.
      */
     function editTicket($data, $key, $source = 'API')
     {
@@ -390,7 +391,7 @@ class TicketApiControllerExtension extends TicketApiController
 
         //Adiciona SÓ UM comentario para todas as alteracoes
         //para se ter comentarios separados tem de se alterar os valores um de cada vez
-        if(!empty($fields))
+        if(!$comments || !empty($fields))
             $notes = $ticket->addComments($comments, $fields, $staffAssignee, $teamAssignee);
 
         //alerta do departamento (se for alterado), tem de estar no fim porque usa os comentarios (notes)
@@ -408,7 +409,7 @@ class TicketApiControllerExtension extends TicketApiController
      * 
      * @param object $ticket Ticket, ticket of the field being edited.
      * @param string $fieldString A string with the name of the field being edited.
-     * @param string $data The new value of the field sent in the body of the HTTP.
+     * @param array $data The new values of the fields sent in the body of the HTTP.
      */
     function simulatePost($ticket, $fieldString, $data){
         $field = $ticket->getField($fieldString);
@@ -484,7 +485,7 @@ class TicketApiControllerExtension extends TicketApiController
      * @param object $key ApiExtension, the key used to call this endpoint.
      * @param string $source = 'API'.
      * 
-     * @return object Ticket, the ticket that was suspended/unsuspended, if ticket was not suspended/unsuspended returns false.
+     * @return mixed (Ticket or boolean) the ticket that was suspended/unsuspended, if ticket was not suspended/unsuspended returns false.
      */
     function suspendTicket($data, $key, $source = 'API')
     {
