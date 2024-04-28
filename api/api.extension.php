@@ -519,8 +519,6 @@ class TicketApiControllerExtension extends TicketApiController
         
         $res = ApiExtension::getDeps();
 
-        $this->response(201, $res);
-
         if ($res)
             $this->response(201, $res);
         else
@@ -542,8 +540,6 @@ class TicketApiControllerExtension extends TicketApiController
             return $this->exerr(401, __('API key not authorized'));
         
         $res = ApiExtension::getSLAS();
-
-        $this->response(201, $res);
 
         if ($res)
             $this->response(201, $res);
@@ -567,8 +563,6 @@ class TicketApiControllerExtension extends TicketApiController
         
         $res = ApiExtension::getTeams();
 
-        $this->response(201, $res);
-
         if ($res)
             $this->response(201, $res);
         else
@@ -591,7 +585,27 @@ class TicketApiControllerExtension extends TicketApiController
         
         $res = ApiExtension::getStaff();
 
-        $this->response(201, $res);
+        if ($res)
+            $this->response(201, $res);
+        else
+            $this->exerr(500, _S("unknown error"));
+
+    }
+
+    /**
+     * Function executed when the endpoint/url users is called.
+     * 
+     * Gets all users.
+     * 
+     * Makes a response with all users.
+     * If there are errors response has code 500 and specified error.
+     */
+    function showUsers(){
+
+        if (!($key = $this->requireApiKey()) || !$key->canEditTickets())
+            return $this->exerr(401, __('API key not authorized'));
+        
+        $res = ApiExtension::getUsers();
 
         if ($res)
             $this->response(201, $res);
@@ -615,8 +629,6 @@ class TicketApiControllerExtension extends TicketApiController
         
         $res = ApiExtension::getPiority();
 
-        $this->response(201, $res);
-
         if ($res)
             $this->response(201, $res);
         else
@@ -639,8 +651,6 @@ class TicketApiControllerExtension extends TicketApiController
         
         $res = ApiExtension::getTopic();
 
-        $this->response(201, $res);
-
         if ($res)
             $this->response(201, $res);
         else
@@ -662,8 +672,6 @@ class TicketApiControllerExtension extends TicketApiController
             return $this->exerr(401, __('API key not authorized'));
         
         $res = ApiExtension::getSources();
-
-        $this->response(201, $res);
 
         if ($res)
             $this->response(201, $res);

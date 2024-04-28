@@ -55,6 +55,8 @@ class ApiExtension extends API
 
     /**
      * Get department id and name.
+     * 
+     * @return boolean true if query worked, false if not
      */
     static function getDeps()
     {
@@ -66,11 +68,15 @@ class ApiExtension extends API
             }
 
             $res->free_result();
+            return true;
         }
+        return false;
     }
 
     /**
      * Get SLA (Service Level Agreement) id and name.
+     * 
+     * @return boolean true if query worked, false if not
      */
     static function getSLAS()
     {
@@ -82,11 +88,15 @@ class ApiExtension extends API
             }
 
             $res->free_result();
+            return true;
         }
+        return false;
     }
 
     /**
      * Get Teams id, name and notes.
+     * 
+     * @return boolean true if query worked, false if not
      */
     static function getTeams()
     {
@@ -98,28 +108,59 @@ class ApiExtension extends API
             }
 
             $res->free_result();
+            return true;
         }
+        return false;
     }
 
     /**
-     * Get Staff id, first name, last name and email.
+     * Get Staff id, username, first name, last name and email.
+     * 
+     * @return boolean true if query worked, false if not
      */
     static function getStaff()
     {
 
-        $sql = 'SELECT staff_id, firstname, lastname, email FROM ' . STAFF_TABLE;
+        $sql = 'SELECT staff_id, firstname, lastname, username, email FROM ' . STAFF_TABLE;
 
         if (($res = db_query($sql))) {
             while ($row = $res->fetch_row()) {
-                printf("%s - %s %s (%s)\n", $row[0], $row[1], $row[2], $row[3]);
+                printf("%s - %s %s (%s - %s)\n", $row[0], $row[1], $row[2], $row[3], $row[4]);
             }
 
             $res->free_result();
+            return true;
         }
+        return false;
+    }
+
+    /**
+     * Get Users id, username and email.
+     * 
+     * @return boolean true if query worked, false if not
+     */
+    static function getUsers()
+    {
+
+        $sql = 'SELECT u.id, u.name, e.address FROM ' . USER_TABLE . ' u 
+        LEFT JOIN '. USER_EMAIL_TABLE . ' e ON u.id = e.id ORDER BY u.id;';
+
+        if (($res = db_query($sql))) {
+            while ($row = $res->fetch_row()) {
+                printf("%s - %s (%s)\n", $row[0], $row[1], $row[2]);
+            }
+
+            $res->free_result();
+
+            return true;
+        }
+        return false;
     }
 
     /**
      * Get Priority id and description.
+     * 
+     * @return boolean true if query worked, false if not
      */
     static function getPiority()
     {
@@ -131,11 +172,15 @@ class ApiExtension extends API
             }
 
             $res->free_result();
+            return true;
         }
+        return false;
     }
 
     /**
      * Get Topic id, name and notes.
+     * 
+     * @return boolean true if query worked, false if not
      */
     static function getTopic()
     {
@@ -147,18 +192,24 @@ class ApiExtension extends API
             }
 
             $res->free_result();
+            return true;
         }
+        return false;
     }
     /**
      * Get Source name.
+     * 
+     * @return boolean true if TicketExtension::getSources() worked, false if not
      */
     static function getSources()
     {
-        $sources = TicketExtension::getSources();
-
-        foreach ($sources as $item) {
-            printf("%s\n", $item);
+        if($sources = TicketExtension::getSources()){
+            foreach ($sources as $item) {
+                printf("%s\n", $item);
+            }
+            return true;
         }
+        return false;
     }
 
     /**

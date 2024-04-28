@@ -248,6 +248,10 @@ class PluginExtension extends Plugin
 				'function' => 'showStaff'
 			),
 			array(
+				'prefix' => "users",
+				'function' => 'showUsers'
+			),
+			array(
 				'prefix' => "priorities",
 				'function' => 'showPriority'
 			),
