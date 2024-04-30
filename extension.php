@@ -1,4 +1,10 @@
 <?php
+
+/**
+ * @file
+ * Plugin class extension for the OSTicket API Extension plugin.
+ */
+
 include_once 'plugin.config.php';
 require_once 'class.staff.php';
 require_once 'class.plugin.php';
@@ -8,23 +14,57 @@ require_once 'config.php';
 
 include INCLUDE_DIR . 'class.dispatcher.php';
 
+/**
+ * Class PluginExtension.
+ *
+ * This class is the main class of the plugin, this is where the plugin is initialized and
+ * the class that uninstalls the plugin when disabled.
+ */
 class PluginExtension extends Plugin
 {
+	//PARA TESTES APAGAR DEPOIS
+	function debugToFile($erro)
+    {
+        $file = PRJ_PLUGIN_DIR . "debug.txt";
+        $text =  $erro . "\n";
+        file_put_contents($file, $text, FILE_APPEND | LOCK_EX);
+    }
+
+	//referencia para a classe das configuracoes do plugin
 	var $config_class = 'PluginConfigExtension';
 
-	var $saveInfo = true; //valor defualt
+	//valor default de guardar a opcao de guardar os valores nas tabelas depois de desativar o plugin
+	//porque a checkbox nao funciona corretamente
+	var $saveInfo = true;
 
-	//É preciso usar init para o plugin ver as configs mesmo quando esta desativado
+	/**
+     * Function called when the plugin is initialized.
+	 * Always runs, even if disabled as long as the plugin is installed.
+	 * 
+     * Used to store the configuration values even when disabled, 
+	 * this is needed for the saveInfo config to install the tables back after enabling the plugin.
+	 * 
+	 * Also check if is the first run of the plugin to set the saveInfo config as true by default, because pf the Booleanfield bug.
+     */
 	function init(){
 		$config = $this->getConfig();
 		if(!($this->saveInfo = $config->get('save_info'))){
 			$this->saveInfo = false;
 		}
 		if ($this->firstRun()) {
-			$this->saveInfo = true; //mete a true por defualt a primeira vez porque o booleanfield esta bugado
+			$this->saveInfo = true; //mete a true por default a primeira vez porque o booleanfield esta bugado
 		}
 	}
 
+	/**
+     * Function called when the plugin is initialized.
+	 * The plugin Needs to be installed and active for this function to run.
+	 * 
+	 * Gets all config values not stored in init() function.
+	 * Registers all endpoints for the API to use.
+	 * If its the first run of the plugin, installs all tables and rows necessary, 
+	 * and adds a new API key to the staff specified in the config.
+     */
 	function bootstrap()
 	{
 		$config = $this->getConfig();
@@ -37,6 +77,13 @@ class PluginExtension extends Plugin
 		}
 	}
 
+	/**
+     * Function that overrides the function of the same name in the Plugin Class.
+	 * 
+	 * This is used to run custom code when the plugin is enabled or disabled.
+	 * 
+	 * @return boolean true if the plugin is active, false if not.
+     */
 	function isActive()
 	{
 		if (!parent::isActive()) {
@@ -47,15 +94,37 @@ class PluginExtension extends Plugin
 		return parent::isActive();
 	}
 
+	/**
+     * Function that overrides the function of the same name in the Plugin Class.
+	 * 
+	 * This is function is called everytime there is a verification to see if the plugin is active and it is active.
+	 * 
+	 * If its the first run of the plugin installs all tables and rows necessary.
+	 * If SAVED_DATA_SQL (the file where old table values are stored) is not empty, tries to add all those old values too.
+	 * 
+	 * @return boolean always true, value of parent::enable().
+     */
 	function enable()
 	{
-		if($this->firstRun() && !$this->fileIsEmpty(SAVED_DATA_SQL)){
+		if($this->firstRun())
 			$this->setDataBase();
+
+		if(!$this->fileIsEmpty(SAVED_DATA_SQL))
 			$this->populateSavedData();
-		}
+
 		return parent::enable();
 	}
 
+	/**
+	 * Function that verifies if a file is empty or not.
+	 * Verifies if the file actually exists and if any bytes are store there.
+	 * 
+	 * This is used to see if there are any old values in the tables stored.
+	 * 
+	 * @param string file name and path that need to be checked.
+	 * 
+	 * @return boolean true if file is empty, false if not.
+     */
 	//verifica se existe um ficheir com os valores da tabvela guardados
 	function fileIsEmpty($filename){
 
@@ -76,7 +145,18 @@ class PluginExtension extends Plugin
 		}
 	}
 
-	//ESTA FUNCAO NAO CORRE QUANDO O PLUGIN É DESATIVADO MAS SIM QUANDO É VERIFICADO SE ESTA ATIVO OU NAO QUE É DEPOIS DE ESTAR DESATIVADO
+	/**
+	 * This is function is called everytime there is a verification to see if the plugin is active and it is NOT active.
+	 * 
+	 * Verifies if it is the plugin first run (verifies if theere are any tables installed already),
+	 * if not there is no point to try and do anything.
+	 * 
+	 * Verifies if the saveInfo configuration option is true,
+	 * if it is, stores all values in the tables installed by the plugin in a file (SAVED_DATA_SQL),
+	 * that is used to add back all those values if the plugin is enabled again.
+	 * 
+	 * Uninstalls all tables and rows added by the plugin.
+     */
 	function disable()
 	{
 		if($this->firstRun()){
@@ -92,16 +172,25 @@ class PluginExtension extends Plugin
 				SUSPEND_NEW_TABLE
 				//ADICIONAR NOVAS TABELAS AQUI
 			);
-			$this->storeData($tableNames);
+			$this->storeData($tableNames, SAVED_DATA_SQL);
 		}
 
 		//desisntala as tabelas e linhas novas da base de dados
 		$installer = new TableInstaller();
-		$installer->runScript(UNINSTALL_SCRIPT);
+		$installer->runJob(UNINSTALL_SCRIPT);
 	}
 
-	//Não esta a funcionar bem coloca todos os inserts com o mesmo nome de tabela 
-	function storeData($tableNames){
+	/**
+	 * Stores all data in the tables specified in the specified file.
+	 * 
+	 * Selects all data from the specified tables.
+	 * For every table creates an INSERT query and stores all data in the query as a string in the file,
+	 * to be runned again when the plugin is enabled.
+	 * 
+	 * @param array array with all of the tables names added by the plugin.
+	 * @param string name and path of the file you want all of the data to be stored in.
+     */
+	function storeData($tableNames, $sqlSaveData){
 		//guarda os resultados de cada tabela numa array
 		$tablesArray = array();
 
@@ -120,7 +209,7 @@ class PluginExtension extends Plugin
 		}
 
 		//guarda os inserts todos no ficheiro sql
-		$file = fopen(SAVED_DATA_SQL, 'w');
+		$file = fopen($sqlSaveData, 'w');
 
 		foreach($tablesArray as $tableName => $array){
 
@@ -150,6 +239,11 @@ class PluginExtension extends Plugin
 		fclose($file);
 	}
 
+	/**
+	 * Adds a new API key to the specified staff.
+	 * 
+	 * @param string username, email or id of the staff.
+     */
 	function addApiKeyRow($username)
 	{
 		$staff = Staff::lookup($username);
@@ -169,6 +263,12 @@ class PluginExtension extends Plugin
 		ApiExtension::add($data, $erros);
 	}
 
+	/**
+	 * Verifies if it is the plugins firstrun.
+	 * Does that by checking if the new tables are already installed in the OSTicket schema.
+	 * 
+	 * @param boolean true if the new tables are already installed, flase if not.
+     */
 	function firstRun()
 	{
 		$sql = 'SHOW TABLES LIKE \'' . API_NEW_TABLE . '\'';
@@ -176,30 +276,37 @@ class PluginExtension extends Plugin
 		return (db_num_rows($res) == 0);
 	}
 
+	/**
+	 * Installs all new tables and rows needed for the plugin to work.
+     */
 	function setDataBase()
 	{
 		$installer = new TableInstaller();
-		$installer->runScript(INSTALL_SCRIPT);
+		$installer->runJob(INSTALL_SCRIPT);
 	}
 
+	/**
+	 * Inserts all the stored data from previous plugin uses in the new tables.
+     */
 	function populateSavedData(){
 		$installer = new TableInstaller();
-		$installer->runScript(SAVED_DATA_SQL);
+		$installer->runJob(SAVED_DATA_SQL);
 	}
 
-	//PARA TESTES APAGAR DEPOIS
-	function debugToFile($erro)
-    {
-        $file = PRJ_PLUGIN_DIR . "debug.txt";
-        $text =  $erro . "\n";
-        file_put_contents($file, $text, FILE_APPEND | LOCK_EX);
-    }
-
-	//Só suporta uma instancia (porque usa sempre as mesmas tabelas)
+	/**
+	 * Overrides function with the same name in the paren class.
+	 * 
+	 * Makes the plugin only support one instance per installation.
+	 * This is because even if more instances were allowed thay would all use the same tables,
+	 * which would mean they would all be the same.
+     */
 	function isMultiInstance(){
 		return false;
 	}
 
+	/**
+	 * Registers all endpoints and their respective functions to be used by the API.
+     */
 	private static function registerEndpoints()
 	{
 
@@ -289,21 +396,40 @@ class PluginExtension extends Plugin
 		}
 	}
 
-	//OS PLUGINS DO OSTICKET NAO SUPORTAM ESTES METODOS NESTA VERSAO, PARA DESINSTALAR É NECESSÁRIO USAR O DISABLE
+	/**
+	 * DOES NOT WORK, NOT SUPPORTED BY OSTICKET YET
+	 * 
+	 * Overrides function with the same name in the parent class.
+	 * Enables the injection of custom code when pre uninstalling the plugin.
+	 * @return boolean true.
+     */
 	function pre_uninstall(&$errors) {
-		$this->debugToFile('PRE_UNINSTALL');
-        return true;
+		// $this->debugToFile('PRE_UNINSTALL');
+        return parent::pre_uninstall($errors);
     }
 
+	/**
+	 * DOES NOT WORK, NOT SUPPORTED BY OSTICKET YET
+	 * 
+	 * Overrides function with the same name in the parent class.
+	 * Enables the injection of custom code when uninstalling the plugin.
+	 * @return boolean true or false.
+     */
 	function uninstall(&$errors) {
-		$this->debugToFile('UNINSTALL');
+		// $this->debugToFile('UNINSTALL');
 		// $installer = new TableInstaller();
 		// $installer->runScript(SQL_SCRIPTS_DIR.UNINSTALL_SCRIPT);
-		parent::uninstall($errors);
+		return parent::uninstall($errors);
 	}
 
+	/**
+	 * DOES NOT WORK, NOT SUPPORTED BY OSTICKET YET
+	 * 
+	 * Overrides function with the same name in the parent class.
+	 * Enables the injection of custom code when deleting the plugin.
+     */
 	function delete(){
-		$this->debugToFile('DELETEEEE');
-		// parent::delete();
+		// $this->debugToFile('DELETEEEE');
+		parent::delete();
 	}
 }

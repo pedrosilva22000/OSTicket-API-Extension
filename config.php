@@ -1,10 +1,23 @@
 <?php
+
+/**
+ * @file
+ * PluginConfig class extension for the OSTicket API Extension plugin.
+ */
+
 require_once(INCLUDE_DIR.'/class.forms.php');
 
+/**
+ * Class PluginConfigExtension.
+ *
+ * This is the class that stores all configuration values of the plugin.
+ */
 class PluginConfigExtension extends PluginConfig {
 
-    // Provide compatibility function for versions of osTicket prior to
-    // translation support (v1.9.4)
+    /**
+     * Provides compatibility function for versions of osTicket prior to translation support (v1.9.4).
+     * @return array from Plugin::translate('auth-passthru').
+     */
     function translate() {
         if (!method_exists('Plugin', 'translate')) {
             return array(
@@ -15,6 +28,12 @@ class PluginConfigExtension extends PluginConfig {
         return Plugin::translate('auth-passthru');
     }
 
+    /**
+     * This function is where all configuration options for the plugin are defined.
+     * Every option is a field and is stored as an element of an array.
+     * 
+     * @return array with all the configuration options fields as values.
+     */
     function getOptions() {
         list($__, $_N) = self::translate();
         return array(
@@ -43,7 +62,11 @@ class PluginConfigExtension extends PluginConfig {
         );
     }
 
-
+    /**
+     * Pre saves the configuration options.
+     * 
+     * @return boolean true;
+     */
     function pre_save(&$config, &$errors) {
         global $msg;
 

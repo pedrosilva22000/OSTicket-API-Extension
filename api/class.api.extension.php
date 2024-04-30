@@ -9,6 +9,7 @@
 include_once INCLUDE_DIR . 'class.api.php';
 include_once INCLUDE_DIR . 'plugin.config.php';
 include_once PRJ_PLUGIN_DIR . 'class.ticket.extension.php';
+
 /**
  * Class ApiExtension.
  *
