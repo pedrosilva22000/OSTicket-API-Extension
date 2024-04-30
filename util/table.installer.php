@@ -22,7 +22,3 @@ class TableInstaller extends \SetupWizard {
 		}
 	}
 }
-
-
-
-?>

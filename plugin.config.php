@@ -29,5 +29,3 @@ define('PRJ_API_DIR', PRJ_PLUGIN_DIR . 'api/'); // Directory for API files.
 define('SAVED_DATA_SQL', SQL_SCRIPTS_DIR . 'savedData.sql'); // SQL file for saved data.
 define('UNINSTALL_SCRIPT', SQL_SCRIPTS_DIR . 'uninstallScript.sql'); // SQL file for uninstallation.
 define('INSTALL_SCRIPT', SQL_SCRIPTS_DIR . 'scripts.sql'); // SQL file for installation.
-
-?>

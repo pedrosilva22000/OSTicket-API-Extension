@@ -53,5 +53,4 @@ class PluginConfigExtension extends PluginConfig {
 
         return true;
     }
-
 }
