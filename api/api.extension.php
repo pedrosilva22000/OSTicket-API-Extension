@@ -123,7 +123,9 @@ class TicketApiControllerExtension extends TicketApiController
             return $this->exerr(401, __('API key not authorized'));
 
         $ticket = null;
+        
         $data = $this->getRequest($format);
+        $data['name'] = Staff::lookup($key->getStaffId())->username;
         $data['email'] = Staff::lookup($key->getStaffId())->getEmail();
         $ticket = $this->createTicket($data);
 

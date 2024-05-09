@@ -22,7 +22,7 @@ class TableInstaller extends SetupWizard {
 	 * 
 	 * @return boolean true if sql runned correctly, false if not.
      */
-    private function runJob($schemaFile) {
+    function runJob($schemaFile) {
 		// checks if file exists and if script runned correctly
 		if (!file_exists ($schemaFile) || !$this->load_sql_file($schemaFile, TABLE_PREFIX, true, false)) {
 			return false;
