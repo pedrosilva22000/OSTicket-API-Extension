@@ -33,29 +33,6 @@ class PluginExtension extends Plugin
 	//referencia para a classe das configuracoes do plugin
 	var $config_class = 'PluginConfigExtension';
 
-	//valor default de guardar a opcao de guardar os valores nas tabelas depois de desativar o plugin
-	//porque a checkbox nao funciona corretamente
-	var $saveInfo = true;
-
-	/**
-     * Function called when the plugin is initialized.
-	 * Always runs, even if disabled as long as the plugin is installed.
-	 * 
-     * Used to store the configuration values even when disabled, 
-	 * this is needed for the saveInfo config to install the tables back after enabling the plugin.
-	 * 
-	 * Also check if is the first run of the plugin to set the saveInfo config as true by default, because pf the Booleanfield bug.
-     */
-	function init(){
-		$config = $this->getConfig();
-		if(!($this->saveInfo = $config->get('save_info'))){
-			$this->saveInfo = false;
-		}
-		if ($this->firstRun()) {
-			$this->saveInfo = true; //mete a true por default a primeira vez porque o booleanfield esta bugado
-		}
-	}
-
 	/**
      * Function called when the plugin is initialized.
 	 * The plugin Needs to be installed and active for this function to run.
@@ -69,6 +46,7 @@ class PluginExtension extends Plugin
 	{
 		$config = $this->getConfig();
 		$username = $config->get('username');
+		$saveInfo = $config->get('save_info');
 
 		self::registerEndpoints();
 		if ($this->firstRun()) {
@@ -86,6 +64,7 @@ class PluginExtension extends Plugin
      */
 	function isActive()
 	{
+		/* $instance = PluginInstance::lookup('4'); */
 		if (!parent::isActive()) {
 			$this->disable();
 		} else {
@@ -106,11 +85,10 @@ class PluginExtension extends Plugin
      */
 	function enable()
 	{
-		if($this->firstRun())
+		if($this->firstRun() && !$this->fileIsEmpty(SAVED_DATA_SQL)){
 			$this->setDataBase();
-
-		if(!$this->fileIsEmpty(SAVED_DATA_SQL))
 			$this->populateSavedData();
+		}
 
 		return parent::enable();
 	}
@@ -163,8 +141,9 @@ class PluginExtension extends Plugin
 			return;
 		}
 
-		//ve se o utilizador quer guardar a informacao das tabelas ou nao, true por defualt para alterar é necessario dar uodate a instancia
-		if($this->saveInfo){
+		//ve se o utilizador quer guardar a informacao das tabelas ou nao, true por defualt para alterar é necessario dar uodate a 
+		
+		if(true){
 			//guarda a informacao das novas tabelas num ficheiro sql
 			//suporta varias tabelas, se criarmos novas é so adicionar o nome a array
 			$tableNames = array(
