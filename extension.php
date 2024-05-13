@@ -50,6 +50,8 @@ class PluginExtension extends Plugin
 		self::registerEndpoints();
 		if ($this->firstRun()) {
 			$this->setDataBase();
+		}
+		if($this->isTableEmpty(API_NEW_TABLE)){
 			$this->addApiKeyRow($username);
 		}
 	}
@@ -270,6 +272,20 @@ class PluginExtension extends Plugin
 		$sql = 'SHOW TABLES LIKE \'' . API_NEW_TABLE . '\'';
 		$res = db_query($sql);
 		return (db_num_rows($res) == 0);
+	}
+
+	/**
+	 * Verifies if tyhe specified table is empty.
+	 * Does that by checking if the select all results of that table is 0.
+	 * 
+	 * @param boolean true if the table is empty, flase if not.
+     */
+	function isTableEmpty($tableName)
+	{
+		$sql = 'SELECT COUNT(*) FROM ' . $tableName;
+		$res = db_query($sql);
+		$row = db_fetch_array($res);
+		return ($row[0] == 0);
 	}
 
 	/**
