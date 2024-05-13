@@ -46,7 +46,6 @@ class PluginExtension extends Plugin
 	{
 		$config = $this->getConfig();
 		$username = $config->get('username');
-		$saveInfo = $config->get('save_info');
 
 		self::registerEndpoints();
 		if ($this->firstRun()) {
@@ -64,7 +63,6 @@ class PluginExtension extends Plugin
      */
 	function isActive()
 	{
-		/* $instance = PluginInstance::lookup('4'); */
 		if (!parent::isActive()) {
 			$this->disable();
 		} else {
@@ -85,9 +83,18 @@ class PluginExtension extends Plugin
      */
 	function enable()
 	{
-		if($this->firstRun() && !$this->fileIsEmpty(SAVED_DATA_SQL)){
+		$saveInfo = false;
+		$instances = $this->getActiveInstances();
+		foreach ($instances as $instance) {
+			$saveInfo = $instance->getConfig()->get('save_info');
+			$this->debugToFile('instance');
+		}
+
+		if($this->firstRun()){
 			$this->setDataBase();
-			$this->populateSavedData();
+			if($saveInfo && !$this->fileIsEmpty(SAVED_DATA_SQL)){
+				$this->populateSavedData();
+			}
 		}
 
 		return parent::enable();
@@ -142,8 +149,13 @@ class PluginExtension extends Plugin
 		}
 
 		//ve se o utilizador quer guardar a informacao das tabelas ou nao, true por defualt para alterar é necessario dar uodate a 
-		
-		if(true){
+		$saveInfo = false;
+		$instances = $this->getActiveInstances();
+		foreach ($instances as $instance) {
+			$saveInfo = $instance->getConfig()->get('save_info');
+		}
+
+		if($saveInfo){
 			//guarda a informacao das novas tabelas num ficheiro sql
 			//suporta varias tabelas, se criarmos novas é so adicionar o nome a array
 			$tableNames = array(
@@ -153,7 +165,6 @@ class PluginExtension extends Plugin
 			);
 			$this->storeData($tableNames, SAVED_DATA_SQL);
 		}
-
 		//desisntala as tabelas e linhas novas da base de dados
 		$installer = new TableInstaller();
 		$installer->runJob(UNINSTALL_SCRIPT);
@@ -189,11 +200,16 @@ class PluginExtension extends Plugin
 
 		//guarda os inserts todos no ficheiro sql
 		$file = fopen($sqlSaveData, 'w');
-
 		foreach($tablesArray as $tableName => $array){
 
-			$columns = array_keys($array[0]);
+			//se a array esta vazia é porque essa tabela esta vazia entao da skip
+			if (!empty($array)) {
+				$columns = array_keys($array[0]);
+			} else {
+				continue;
+			}
 
+			$columns = array_keys($array[0]);
 			$valuesArrays = array_fill(0, count($columns), array());
 
 			foreach ($array as $arr) {
@@ -216,6 +232,7 @@ class PluginExtension extends Plugin
 		}
 
 		fclose($file);
+
 	}
 
 	/**
