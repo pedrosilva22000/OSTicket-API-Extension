@@ -48,9 +48,7 @@ class PluginExtension extends Plugin
 		$username = $config->get('username');
 
 		self::registerEndpoints();
-		if ($this->firstRun()) {
-			$this->setDataBase();
-		}
+		
 		if($this->isTableEmpty(API_NEW_TABLE)){
 			$this->addApiKeyRow($username);
 		}
@@ -89,12 +87,11 @@ class PluginExtension extends Plugin
 		$instances = $this->getActiveInstances();
 		foreach ($instances as $instance) {
 			$saveInfo = $instance->getConfig()->get('save_info');
-			$this->debugToFile('instance');
 		}
 
 		if($this->firstRun()){
 			$this->setDataBase();
-			if($saveInfo && !$this->fileIsEmpty(SAVED_DATA_SQL)){
+			if($saveInfo){
 				$this->populateSavedData();
 			}
 		}
@@ -150,7 +147,7 @@ class PluginExtension extends Plugin
 			return;
 		}
 
-		//ve se o utilizador quer guardar a informacao das tabelas ou nao, true por defualt para alterar é necessario dar uodate a 
+		//ve se o utilizador quer guardar a informacao das tabelas ou nao, true por default para alterar é necessario dar uodate a 
 		$saveInfo = false;
 		$instances = $this->getActiveInstances();
 		foreach ($instances as $instance) {
@@ -202,6 +199,11 @@ class PluginExtension extends Plugin
 
 		//guarda os inserts todos no ficheiro sql
 		$file = fopen($sqlSaveData, 'w');
+
+		//warning no sql para nao ser alterado
+		$warning = "-- DON'T CHANGE THIS FILE UNLESS YOU KNOW WHAT YOU'RE DOING!!!\n\n";
+		fwrite($file, $warning);
+
 		foreach($tablesArray as $tableName => $array){
 
 			//se a array esta vazia é porque essa tabela esta vazia entao da skip
@@ -265,7 +267,7 @@ class PluginExtension extends Plugin
 	 * Verifies if it is the plugins firstrun.
 	 * Does that by checking if the new tables are already installed in the OSTicket schema.
 	 * 
-	 * @param boolean true if the new tables are already installed, flase if not.
+	 * @return boolean true if the new tables are already installed, flase if not.
      */
 	function firstRun()
 	{
@@ -278,14 +280,16 @@ class PluginExtension extends Plugin
 	 * Verifies if tyhe specified table is empty.
 	 * Does that by checking if the select all results of that table is 0.
 	 * 
-	 * @param boolean true if the table is empty, flase if not.
+	 * @param string name of the table you want to check.
+	 * 
+	 * @return boolean true if the table is empty, flase if not.
      */
 	function isTableEmpty($tableName)
 	{
-		$sql = 'SELECT COUNT(*) FROM ' . $tableName;
+		//limit 1 para ir buscar so a primeira linha em vez todas, porque podem existir milhares de linhas
+		$sql = 'SELECT * FROM `' . $tableName . '` LIMIT 1';
 		$res = db_query($sql);
-		$row = db_fetch_array($res);
-		return ($row[0] == 0);
+		return (db_num_rows($res) == 0);
 	}
 
 	/**
