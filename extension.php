@@ -353,6 +353,10 @@ class PluginExtension extends Plugin
 			array(
 				'prefix' => "edit/tickets",
 				'function' => 'edit'
+			),
+			array(
+				'prefix' => "getApiKey/tickets",
+				'function' => 'getUserApiKey'
 			)
 		);
 

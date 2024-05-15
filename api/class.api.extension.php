@@ -323,6 +323,22 @@ class ApiExtension extends API
         return false;
     }
 
+     /**
+     * Gets the id of the key of the specified staff.
+     *
+     * @param int $staffId
+
+     * @return mixed (int or boolean) int with the id of the key, false if query didnt work
+     */
+    static function getKeyIdForUser($staffId){
+        $sql = 'SELECT id FROM ' . API_NEW_TABLE . ' WHERE id_staff=' . db_input($staffId) . ' AND isactive = 1';
+        $res = db_query($sql);
+        if(!$res){
+            return false;
+        }
+        return $res->fetch_row()[0];
+    }
+
     /**
      * Get staff id 
      * 
