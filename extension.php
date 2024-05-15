@@ -50,7 +50,8 @@ class PluginExtension extends Plugin
 		self::registerEndpoints();
 		
 		if($this->isTableEmpty(API_NEW_TABLE)){
-			$this->addApiKeyRow($username);
+			$key = $this->addApiKeyRow($username);
+			$config->set('apikey', $key);		
 		}
 	}
 
@@ -261,6 +262,8 @@ class PluginExtension extends Plugin
 		);
 
 		ApiExtension::add($data, $erros);
+		$apikey = ApiExtension::lookup(1);
+		return $apikey->getKey();
 	}
 
 	/**

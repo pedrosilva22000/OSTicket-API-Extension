@@ -55,6 +55,10 @@ class PluginConfigExtension extends PluginConfig {
                     so when the plugin is activated again it has all the same data as before.')
                 )
             )),
+            'apikey' => new TextboxField(array(
+                'label' => $__('Your API Key'),
+                'configuration' => array('size'=>40),
+            )),
         );
     }
 
