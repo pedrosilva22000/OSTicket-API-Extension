@@ -24,6 +24,7 @@ define('SUSPEND_NEW_TABLE', TABLE_PREFIX . 'suspended_ticket'); // Table for sus
 define('PRJ_PLUGIN_DIR', INCLUDE_DIR . 'plugins/OSTicket-API-Extension/'); // Plugin directory.
 define('SQL_SCRIPTS_DIR', PRJ_PLUGIN_DIR . 'sql/'); // Directory for SQL scripts.
 define('PRJ_API_DIR', PRJ_PLUGIN_DIR . 'api/'); // Directory for API files.
+define('PRJ_UTIL_DIR', PRJ_PLUGIN_DIR . 'util/'); // Directory for Util files.
 
 // Define names of SQL files.
 define('SAVED_DATA_SQL', SQL_SCRIPTS_DIR . 'savedData.sql'); // SQL file for saved data.

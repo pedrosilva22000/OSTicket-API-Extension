@@ -103,6 +103,46 @@ class TicketApiControllerExtension extends TicketApiController
             $this->exerr(500, _S("unknown error"));
     }
 
+/**
+     * Function executed when the endpoint/url getApiKey/tickets is called.
+     * 
+     * Gets the API key of the user sent in the json.
+     * 
+     * Authenticates the user to make sure it is really him making the request
+     * 
+     * @param object $format Json sent in the HTTP body.
+     */
+    function getUserApiKey($format)
+    {
+        $errors = '';
+
+        //trata a informação do json
+        $data = $this->getRequest($format);
+
+        $staff = Staff::lookup($data['staff']);
+        //validacao do staff
+        if (!$staff || !$staff->check_passwd($data['password'])) {
+            $errors = _S("Staff does not exist or password is incorrect");
+        }
+        else{
+            //id do staff é passado para a variavel $data (no json pode ser passado o nome ou no email do user, não o id)
+            $staffId = $staff->getId();
+
+            //adiciona uma api key nova ao staff definido e retorna o id da api key se funcionar corretamente
+            if(!($id = ApiExtension::getKeyIdForUser($staffId))){
+                $errors = $staff->getName()._S(" has no key");
+            }
+
+            $key = ApiExtension::lookup($id);
+        }
+
+        //se não existir o objeto key é porque algum erro aconteceu e não foi possivel criar a key nova, se existir respoinde com a api key nova
+        if ($key)
+            $this->response(201, $staff->getName()._S('\'s key is: ').$key->getKey());
+        else
+            $this->exerr(500, $errors);
+    }
+
     /**
      * Function executed when the endpoint/url create/tickets is called.
      * Overrides the function with the same name in TicketApiController to use our own API keys.
