@@ -315,13 +315,14 @@ class TicketApiControllerExtension extends TicketApiController
             return $this->exerr(401, __('API key not authorized'));
 
         $ticket = null;
-
-        $ticket = $this->editTicket($this->getRequest($format), $key);
+        
+        $msg = '';
+        $ticket = $this->editTicket($this->getRequest($format), $key, $msg);
 
         if ($ticket)
-            $this->response(201, "Ticket ".$ticket->getNumber()." Updated");
+            $this->response(201, $msg);
         else
-            $this->exerr(500, _S("unknown error"));
+            $this->exerr(500, _S($msg));
     }
 
     /**
@@ -334,10 +335,13 @@ class TicketApiControllerExtension extends TicketApiController
      * 
      * @return mixed (Ticket or boolean) the ticket that was edited, if ticket was not edited returns false.
      */
-    function editTicket($data, $key, $source = 'API')
+    function editTicket($data, $key, &$msg, $source = 'API')
     {
         $number = $data['ticketNumber'];
-        $ticket = TicketExtension::lookup(array('number' => $number));
+        if(!($ticket = TicketExtension::lookup(array('number' => $number)))){
+            $msg = 'Ticket '.$number.' does not exist \n';
+            return false;
+        }
 
         $comments = $data['comments'];
 
@@ -345,89 +349,203 @@ class TicketApiControllerExtension extends TicketApiController
         $thisstaff = Staff::lookup($key->ht['id_staff']);
         $thisstaffuser = $thisstaff->getUserName();
 
-        $msg = ''; //erros e assim
-
         //fields alterados
         $fields = array();
         //assignees
         $staffAssignee = null;
         $teamAssignee = null;
 
-        if (!$data['staff'] && $data['staff'] != null && $ticket->getStaffId() != 0) {
-            if ($ticket->setStaffId(0)) {
-                $msg = $msg . 'Staff unassign successfully \n';
-                $ticket->logEvent('assigned', array('staff' => 'unassign'), user: $thisstaffuser);
-            } else {
-                $msg = $msg . 'Unable to unassign staff \n';
-            }
-        }
+        //staff
+        // if (!$data['staff'] && $data['staff'] != null && $ticket->getStaffId() != 0) {
+        //     if ($ticket->setStaffId(0)) {
+        //         $msg = $msg . 'Staff unassign successfully \n';
+        //         $ticket->logEvent('assigned', array('staff' => 'unassign'), user: $thisstaffuser);
+        //     } else {
+        //         $msg = $msg . 'Unable to unassign staff \n';
+        //     }
+        // }
         if ($data['staff']) {
-            $staff = Staff::lookup($data['staff']);
-            if ($ticket->getStaffId() != $staff->getId()) {
-                $ticket->assignToStaff($staff, '', user: $thisstaffuser);
-                $staffAssignee = $staff;
-                $fields[] = 'staff';
+            if($staff = Staff::lookup($data['staff'])){
+                if ($ticket->getStaffId() != $staff->getId()) {
+                    $oldStaff = $ticket->getStaff();
+    
+                    $ticket->assignToStaff($staff, '', user: $thisstaffuser);
+                    $staffAssignee = $staff;
+                    $fields[] = 'staff';
+    
+                    $msg .= 'Staff Updated. '.$oldStaff->getName().' changed to '.$staff->getName()."\n";
+                }
+                else{
+                    $msg .= 'Failed to Update Staff. '.$staff->getName()." is already assigned to ticket\n";
+                }
+            }
+            else{
+                $msg .= 'Failed to Update Staff. '.$data['staff']." does not exist\n";
             }
         }
+        //staff
 
-        if (!$data['team'] && $data['team'] != null && $ticket->getTeamId() != 0) {
-            $ticket->setTeamId(0); //usar release() maybe
-            $ticket->logEvent('assigned', array('team' => 'unassign'), user: $thisstaffuser);
-        }
+        //team
+        // if (!$data['team'] && $data['team'] != null && $ticket->getTeamId() != 0) {
+        //     $ticket->setTeamId(0); //usar release() maybe
+        //     $ticket->logEvent('assigned', array('team' => 'unassign'), user: $thisstaffuser);
+        // }
         if ($data['team']) {
-            $team = Team::lookup($data['team']);
-            if ($ticket->getTeamId() != $data['team']) {
-                $ticket->assignToTeam($team, '', user: $thisstaffuser);
-                $teamAssignee = $team;
-                $fields[] = 'team';
+            if($team = Team::lookup($data['team'])){
+                if ($ticket->getTeamId() != $data['team']) {
+                    $oldTeam = $ticket->getTeam();
+    
+                    $ticket->assignToTeam($team, '', user: $thisstaffuser);
+                    $teamAssignee = $team;
+                    $fields[] = 'team';
+    
+                    $msg .= 'Team Updated. '.$oldTeam->getName().' changed to '.$team->getName()."\n";
+                }
+                else{
+                    $msg .= 'Failed to Update Team. '.$team->getName()." is already assigned to ticket\n";
+                }
+            }
+            else{
+                $msg .= 'Failed to Update Team. '.$data['team']." does not exist\n";
             }
         }
+        
+        //team
 
-        if ($data['user'] && $data['user'] != $ticket->getUserId()) {
-            $user = User::lookup($data['user']);
-            $ticket->changeOwner($user);
+        //user
+        if ($data['user']) {
+            if($user = User::lookup($data['user'])){
+                if($data['user'] != $ticket->getUserId()){
+                    $oldUser = $ticket->getUser();
+                    $ticket->changeOwner($user);
+
+                    $msg .= 'User Updated. '.$oldUser->getName().' changed to '.$user->getName()."\n";
+                }
+                else{
+                    $msg .= 'Failed to Update User. '.$user->getName()." is already assigned to ticket\n";
+                }
+            }
+            else{
+                $msg .= 'Failed to Update User. '.$data['user']." does not exist\n";
+            }
         }
+        //user
 
         // //source
         // //VERIFICA SE A SOURCE INSERIDA NO JSON É POSSIVEL enum('Web', 'Email', 'Phone', 'API', 'Other')
-        if ($data['source'] && in_array($data['source'], $ticket->getSources()) && $data['source'] != $ticket->getSource()){
-            $this->simulatePost($ticket, 'source', $data);
-            $fields[] = 'source';
+        if ($data['source']){
+            if(in_array($data['source'], $ticket->getSources())){
+                if($data['source'] != $ticket->getSource()){
+                    $oldSource = $ticket->getSource();
+                    $this->simulatePost($ticket, 'source', $data);
+                    $fields[] = 'source';
+                    $msg .= 'Source Updated. '.$oldSource.' changed to '.$data['source']."\n";
+                }
+                else{
+                    $msg .= 'Failed to Update Source. '.$data['source']." is already assigned to ticket\n";
+                }
+            }
+            else{
+                $msg .='Failed to Update Source. '.$data['source']." is not a valid source\n";
+            }
         }
         // //source
 
         // //topic
-        if ($data['topic'] && $data['topic'] != $ticket->getTopicId()){
-            $this->simulatePost($ticket, 'topic', $data);
-            $fields[] = 'topic';
+        if ($data['topic']){
+            if($topic = Topic::lookup($data['topic'])){
+                if($data['topic'] != $ticket->getTopicId()){
+                    $oldTopic = $ticket->getTopic();
+                    $this->simulatePost($ticket, 'topic', $data);
+                    $fields[] = 'topic';
+                    $msg .='Topic Updated. '.$oldTopic->getName().' changed to '.$topic->getName()."\n";
+                }
+                else{
+                    $msg .= 'Failed to Update Topic. '.$topic->getName()." is already assigned to ticket\n";
+                }
+            }
+            else{
+                $msg .= 'Failed to Update Topic. '.$data['topic']." does not exist\n";
+            }
         }
         // //topic
 
         // //sla
-        if ($data['sla'] && $data['sla'] != $ticket->getSLAId()){
-            $this->simulatePost($ticket, 'sla', $data);
-            $fields[] = 'sla';
+        if ($data['sla']){
+            if($sla = SLA::lookup($data['sla'])){
+                if($data['sla'] != $ticket->getSLAId()){
+                    $oldSLA = $ticket->getSLA();
+                    $this->simulatePost($ticket, 'sla', $data);
+                    $fields[] = 'sla';
+                    $msg .='SLA Updated. '.$oldSLA->getName().' changed to '.$sla->getName()."\n";
+                }
+                else{
+                    $msg .= 'Failed to Update SLA. '.$sla->getName()." is already assigned to ticket\n";
+                }
+            }
+            else{
+                $msg .= 'Failed to Update SLA. '.$data['sla']." does not exist\n";
+            }
         }
         // //sla
 
         // //dept
-        if($data['dept'] && $data['dept'] != $ticket->getDeptId()){
-            $ticket->editFields('dept', $data['dept'], $data['refer']);
-            $fields[] = 'dept';
+        if($data['dept']){
+            if($dept = Dept::lookup($data['dept'])){
+                if($data['dept'] != $ticket->getDeptId()){
+                    $oldDept = $ticket->getDept();
+                    $ticket->editFields('dept', $data['dept'], $data['refer']);
+                    $fields[] = 'dept';
+                    $msg .='Dept Updated. '.$oldDept->getName().' changed to '.$dept->getName()."\n";
+                }
+                else{
+                    $msg .='Failed to Update Dept. '.$dept->getName()." is already assigned to ticket\n";
+                }
+            }
+            else{
+                $msg .='Failed to Update Dept. '.$data['dept']." does not exist\n";
+            }
         }
         // //dept
 
         // //priority
-        if ($data['priority'] && $data['priority'] != $ticket->getPriorityId()){
-            $ticket->editFields('priority', $data['priority']);
-            $fields[] = 'priority';
+        if ($data['priority']){
+            if($priority = Priority::lookup($data['priority'])){
+                if($data['priority'] != $ticket->getPriorityId()){
+                    $oldPriority = $ticket->getPriority();
+                    $ticket->editFields('priority', $data['priority'], '');
+                    $fields[] = 'priority';
+                    $msg .='Priority Updated. '.$oldPriority->getDesc().' changed to '.$priority->getDesc()."\n";
+                }
+                else{
+                    $msg .= 'Failed to Update Priority. '.$priority->getDesc()." is already assigned to ticket\n";
+                }
+            }
+            else{
+                $msg .='Failed to Update Priority. '.$data['priority']." does not exist\n";
+            }
         }
         // //priority
 
         // //duedate
-        if($data['duedate'] && $this->isValidDateTimeFormat($data['duedate']) && $this->compareStringToDate($data['duedate'], $ticket->getDueDate())){
-            $this->simulatePost($ticket, 'duedate', $data);
-            $fields[] = 'duedate';
+        if($data['duedate']){
+            if($this->isValidDateTimeFormat($data['duedate'])){
+                if($data['duedate'] != $ticket->getDueDate()){
+                    $this->debugToFile($ticket->getDueDate());
+                    if(!($oldDueDate = $ticket->getDueDate())){
+                        $oldDueDate = 'Empty Due Date';
+                    }
+                    $this->simulatePost($ticket, 'duedate', $data);
+                    $fields[] = 'duedate';
+                    $msg .='Due Date Updated. '.$oldDueDate.' changed to '.$data['duedate']."\n";
+                }
+                else{
+                    $msg .='Failed to Update Due Date. '.$data['duedate']." is already assigned to ticket\n";
+                }
+            }
+            else{
+                $msg .= 'Failed to Update Due Date. '.$data['duedate']." is not a valid date, date should have format 'Y-m-d H:i:s'\n";
+            }
         }
         // //duedate
 
@@ -441,6 +559,8 @@ class TicketApiControllerExtension extends TicketApiController
         if(in_array('dept', $fields) && !$alert || !$cfg->alertONTransfer() || !$ticket->getDept()->getNumMembersForAlerts()){
             $ticket->alerts($notes);
         }
+
+        $msg .= empty($fields) ? "Ticket ".$number." Failed to Update\n" : "Ticket ".$number." Updated\n";
 
         //se nenhum valor foi alterado return false
         return !empty($fields) ? $ticket : false;
@@ -472,23 +592,12 @@ class TicketApiControllerExtension extends TicketApiController
      * @return boolean true if the date sent is in the correct format, false if not
      */
     function isValidDateTimeFormat($dateTimeString, $format = 'Y-m-d H:i:s') {
+        $pattern = '/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/';
+        if (!preg_match($pattern, $dateTimeString)) {
+            return false;
+        }
         $dateTimeObj = DateTime::createFromFormat($format, $dateTimeString);
-        return $dateTimeObj && $dateTimeObj->format($format) === $dateTimeString;
-    }
-
-    /**
-     * Compares a date in a string to a date in DateTime.
-     * 
-     * @param string $stringDate date in string.
-     * @param DateTime $date date in DateTime.
-     * 
-     * @return boolean true if both dates are the same, false if not
-     */
-    function compareStringToDate($stringDate, $date){
-        $dateTimeString = DateTime::createFromFormat('Y-m-d H:i:s', $stringDate);
-        $formattedDateTimeString = $dateTimeString->format('Y-m-d H:i:s');
-
-        return ($formattedDateTimeString === $date);
+        return $dateTimeObj && $dateTimeObj->format($format) == $dateTimeString;
     }
 
     /**
