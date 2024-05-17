@@ -274,10 +274,11 @@ class TicketExtension extends Ticket{
      */
     function setPriorityId($priorityId)
     {
+
         //ticket priority já é o que é suposto
         if ($priorityId == $this->getPriorityId())
             return true;
-
+ 
         //nao existe priority com essa priority id
         if ($priorityId && !($priority = Priority::lookup($priorityId)))
             return false;
@@ -298,7 +299,8 @@ class TicketExtension extends Ticket{
      * @param int $newValue id of the new priority.
      */
     function setFormEntryValueId($newValue){
-        $sql = "UPDATE ".FORM_ANSWER_TABLE." SET value_id = ".$newValue." WHERE entry_id=(SELECT id FROM ".FORM_ENTRY_TABLE." WHERE object_id = ".$this->getId().")";
+        $sql = "UPDATE ".FORM_ANSWER_TABLE." SET value_id = ".$newValue." 
+        WHERE entry_id=(SELECT id FROM ".FORM_ENTRY_TABLE." WHERE object_id = ".$this->getId()." AND form_id=".TICKET_DETAILS_FORM.")";
         db_query($sql);
     }
 

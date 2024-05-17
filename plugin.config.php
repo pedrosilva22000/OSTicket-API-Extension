@@ -16,6 +16,9 @@ define('STATE_ARCHIVED', 4);
 define('STATE_RESOLVED', 5);
 define('STATE_SUSPENDED', 6);
 
+// Id of Ticket Details in table ost_form
+define('TICKET_DETAILS_FORM', 2);
+
 // Define names of database tables.
 define('API_NEW_TABLE', TABLE_PREFIX . 'api_key_extension'); // Table for new API keys.
 define('SUSPEND_NEW_TABLE', TABLE_PREFIX . 'suspended_ticket'); // Table for suspended tickets.
