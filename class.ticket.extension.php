@@ -313,7 +313,7 @@ class TicketExtension extends Ticket{
      * @param string $comments comments made when suspending/unsuspending ticket.
      * @param string $errors errors found so far.
      */
-    function setSuspend($comments = '', &$errors = array())
+    function setSuspend($status, $comments = '', &$errors = array())
     {
         global $cfg, $thisstaff;
 
@@ -326,7 +326,7 @@ class TicketExtension extends Ticket{
 
 
         //tirar o suspend
-        if ($this->getStatus() == 'Suspended') {
+        if ($status == 'Suspended') {
 
 
 
@@ -380,9 +380,8 @@ class TicketExtension extends Ticket{
 
         }
 
-
         //meter a suspend
-        elseif ($this->getStatus() == 'Open') {
+        elseif ($status == 'Open') {
 
             if ($errors) return false;
 
@@ -440,3 +439,4 @@ class TicketExtension extends Ticket{
         return Ticket::$sources;
     }
 }
+

@@ -343,6 +343,10 @@ class PluginExtension extends Plugin
 				'function' => 'suspend'
 			),
 			array(
+				'prefix' => "unSuspend/tickets",
+				'function' => 'unSuspend'
+			),
+			array(
 				'prefix' => "requestApiKey/tickets",
 				'function' => 'requestApiKey'
 			),
