@@ -587,9 +587,9 @@ class TicketApiControllerExtension extends TicketApiController
      * 
      * Verifies if the key is valid and has permission to suspend tickets.
      * 
-     * Suspends/Unsuspends the specified ticket.
+     * Suspends the specified ticket.
      * 
-     * Makes a response with the suspended/unsuspended ticket number.
+     * Makes a response with the suspended ticket number.
      * If there are errors response has code 500 and specified error.
      * 
      * @param object $format Json sent in the HTTP body.
@@ -609,6 +609,18 @@ class TicketApiControllerExtension extends TicketApiController
             $this->exerr(500, _S("unknown error"));
     }
 
+    /**
+     * Function executed when the endpoint/url unSuspend/tickets is called.
+     * 
+     * Verifies if the key is valid and has permission to suspend tickets.
+     * 
+     * Unsuspends the specified ticket.
+     * 
+     * Makes a response with the unsuspended ticket number.
+     * If there are errors response has code 500 and specified error.
+     * 
+     * @param object $format Json sent in the HTTP body.
+     */
     function unSuspend($format)
     {
         if (!($key = $this->requireApiKey()) || !$key->canSuspendTickets())

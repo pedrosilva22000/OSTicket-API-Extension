@@ -310,6 +310,7 @@ class TicketExtension extends Ticket{
      * When unsuspended the date is also stored in the same row and the due date of the ticket is recalculated to not count
      * the time when the ticket was suspended.
      * 
+     * @param string $status actual status of the ticket before the change
      * @param string $comments comments made when suspending/unsuspending ticket.
      * @param string $errors errors found so far.
      */
