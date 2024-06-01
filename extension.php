@@ -361,6 +361,10 @@ class PluginExtension extends Plugin
 			array(
 				'prefix' => "getApiKey/tickets",
 				'function' => 'getUserApiKey'
+			),
+			array(
+				'prefix' => "delete/tickets",
+				'function' => 'delete'
 			)
 		);
 
@@ -396,6 +400,10 @@ class PluginExtension extends Plugin
 			array(
 				'prefix' => "sources",
 				'function' => 'showSources'
+			),
+			array(
+				'prefix' => "ticketsList",
+				'function' => 'showTickets'
 			)
 
 		);

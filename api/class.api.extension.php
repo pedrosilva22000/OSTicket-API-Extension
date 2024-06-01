@@ -203,6 +203,7 @@ class ApiExtension extends API
         }
         return false;
     }
+
     /**
      * Get Source name.
      * 
@@ -216,6 +217,29 @@ class ApiExtension extends API
                 $result .= sprintf("%s\n", $item);
             }
             $result = rtrim($result, "\n");
+            return $result;
+        }
+        return false;
+    }
+
+    /**
+     * Get Source name.
+     * 
+     * @return mixed (string or boolean) string with results from TicketExtension::getSources(), false if it didnt work
+     */
+    static function getTickets()
+    {
+        $sql = 'SELECT number FROM ' . TICKET_TABLE;
+
+        if (($res = db_query($sql))) {
+            $result = '';
+            while ($row = $res->fetch_row()) {
+                $ticket = Ticket::lookup(array('number' => $row[0]));
+                $result .= sprintf("Ticket %s - Status: %s, Last Updated: %s, Subject: %s, From: %s, Priority: %s, Assigned To: %s\n", 
+                $row[0],  $ticket->getStatus(), $ticket->getEffectiveDate(), $ticket->getSubject(), User::lookup($ticket->getUserId())->getName(), $ticket->getPriority(), $ticket->getAssignee());
+            }
+            $result = rtrim($result, "\n");
+            $res->free_result();
             return $result;
         }
         return false;

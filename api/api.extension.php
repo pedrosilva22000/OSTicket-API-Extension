@@ -8,6 +8,7 @@
 include_once 'plugin.config.php';
 include_once 'class.api.extension.php';
 include_once PRJ_PLUGIN_DIR . 'class.ticket.extension.php';
+include_once PRJ_PLUGIN_DIR . 'debugger.php';
 
 /**
  * Class ApiExtension.
@@ -333,7 +334,7 @@ class TicketApiControllerExtension extends TicketApiController
      * 
      * @return mixed (Ticket or boolean) the ticket that was edited, if ticket was not edited returns false.
      */
-    function editTicket($data, $key, &$msg, $source = 'API')
+    function editTicket($data, $key, &$msg)
     {
         $number = $data['ticketNumber'];
         if (!($ticket = TicketExtension::lookup(array('number' => $number)))) {
@@ -601,12 +602,13 @@ class TicketApiControllerExtension extends TicketApiController
 
         $ticket = null;
 
-        $ticket = $this->suspendTicket($this->getRequest($format), $key, 'Open');
+        $msg = '';
+        $ticket = $this->suspendTicket($this->getRequest($format), $key, 'Open', $msg);
 
         if ($ticket)
-            $this->response(201, "Ticket " . $ticket->getNumber() . " Suspendeded");
+            $this->response(201, $msg);
         else
-            $this->exerr(500, _S("unknown error"));
+            $this->exerr(500, _S($msg));
     }
 
     /**
@@ -628,12 +630,13 @@ class TicketApiControllerExtension extends TicketApiController
 
         $ticket = null;
 
-        $ticket = $this->suspendTicket($this->getRequest($format), $key, 'Suspended');
+        $msg = '';
+        $ticket = $this->suspendTicket($this->getRequest($format), $key, 'Suspended', $msg);
 
         if ($ticket)
-            $this->response(201, "Ticket " . $ticket->getNumber() . " Unsuspended");
+            $this->response(201, $msg);
         else
-            $this->exerr(500, _S("unknown error"));
+            $this->exerr(500, _S($msg));
     }
 
     /**
@@ -645,7 +648,7 @@ class TicketApiControllerExtension extends TicketApiController
      * 
      * @return mixed (Ticket or boolean) the ticket that was suspended/unsuspended, if ticket was not suspended/unsuspended returns false.
      */
-    function suspendTicket($data, $key, $status, $source = 'API')
+    function suspendTicket($data, $key, $status, &$msg)
     {
         $number = $data['ticketNumber'];
         $ticket = TicketExtension::lookup(array('number' => $number));
@@ -655,10 +658,90 @@ class TicketApiControllerExtension extends TicketApiController
 
         global $thisstaff;
         $thisstaff = $staff;
-        //altera o status do ticket
-        if ($ticket->setSuspend($status, comments: $comments)) {
+
+        if ($status == 'Open') {
+            if($ticket->getStatusId() == STATE_SUSPENDED){
+                $msg = 'Ticket ' . $number . ' is already Suspended';
+                return $msg;
+            }
+            elseif ($ticket->setSuspend($status, comments: $comments)) {
+                $msg = "Ticket " . $number . " Suspended";
+                return $msg;
+            }
+            else{
+                $msg = "Ticket " . $number . " Failed to Suspend";
+            }
+        } else {
+            if($ticket->getStatusId() == STATE_OPEN){
+                $msg = 'Ticket ' . $number . ' is already Unsuspended';
+                return $msg;
+            }
+            elseif ($ticket->setSuspend($status, comments: $comments)) {
+                $msg = "Ticket " . $number . " Unsuspended";
+                return $msg;
+            }
+            else{
+                $msg = "Ticket " . $number . " Failed to Unsuspend";
+            }
+        }
+
+        return $msg;
+    }
+
+    /**
+     * Function executed when the endpoint/url delete/tickets is called.
+     * 
+     * Verifies if the key is valid and has permission to close tickets.
+     * 
+     * Deletes the specified ticket.
+     * 
+     * Makes a response with the deleted ticket number.
+     * If there are errors response has code 500 and specified error.
+     * 
+     * @param object $format Json sent in the HTTP body.
+     */
+    function delete($format)
+    {
+
+        if (!($key = $this->requireApiKey()) || !$key->canCloseTickets())
+            return $this->exerr(401, __('API key not authorized'));
+
+        $ticket = null;
+        $ticket = $this->deleteTicket($this->getRequest($format), $key);
+
+        if ($ticket)
+            $this->response(201, "Ticket " . $ticket->getNumber() . " Deleted");
+        else
+            $this->exerr(500, _S("unknown error"));
+    }
+
+    /**
+     * Deletes the ticket, with the specified comments.
+     * 
+     * @param array $data Array with the values from the Json sent in the HTTP body.
+     * @param object $key ApiExtension, the key used to call this endpoint.
+     * @param string $source = 'API'.
+     * 
+     * @return mixed (Ticket or boolean) the ticket that was closed, if ticket was not closed returns false.
+     */
+    function deleteTicket($data, $key) //source nao esta a fazer nada ja nao me lembro porque
+    {
+        //variavel global que indica o staff que esta a fazer o pedido da api
+        global $thisstaff;
+
+        //cria objetos baseados na informação passada no json
+        $number = $data['ticketNumber'];
+        $ticket = Ticket::lookup(array('number' => $number));
+        $staff = Staff::lookup($key->ht['id_staff']);
+
+        $comments = $data['comments'];
+
+        $thisstaff = $staff;
+        //apaga o ticket
+        if ($ticket->delete($comments)) {
             return $ticket;
         }
+
         return false;
     }
 
@@ -831,6 +914,28 @@ class TicketApiControllerExtension extends TicketApiController
             return $this->exerr(401, __('API key not authorized'));
 
         $res = ApiExtension::getSources();
+
+        if ($res)
+            $this->response(201, $res);
+        else
+            $this->exerr(500, _S("unknown error"));
+    }
+
+    /**
+     * Function executed when the endpoint/url ticketsList is called.
+     * 
+     * Gets all tickets.
+     * 
+     * Makes a response with all tickets.
+     * If there are errors response has code 500 and specified error.
+     */
+    function showTickets()
+    {
+
+        if (!($key = $this->requireApiKey()) || !$key->canEditTickets())
+            return $this->exerr(401, __('API key not authorized'));
+
+        $res = ApiExtension::getTickets();
 
         if ($res)
             $this->response(201, $res);
