@@ -366,13 +366,18 @@ class TicketApiControllerExtension extends TicketApiController
         if ($data['staff']) {
             if ($staff = Staff::lookup($data['staff'])) {
                 if ($ticket->getStaffId() != $staff->getId()) {
-                    $oldStaff = $ticket->getStaff();
+                    if($oldStaff = $ticket->getStaff()){
+                        $oldStaff = $oldStaff->getName();
+                    }else{
+                        $oldStaff = 'No Staff';
+                    }
+                
 
                     $ticket->assignToStaff($staff, '', user: $thisstaffuser);
                     $staffAssignee = $staff;
                     $fields[] = 'staff';
 
-                    $msg .= 'Staff Updated. ' . $oldStaff->getName() . ' changed to ' . $staff->getName() . "\n";
+                    $msg .= 'Staff Updated. ' . $oldStaff . ' changed to ' . $staff->getName() . "\n";
                 } else {
                     $msg .= 'Failed to Update Staff. ' . $staff->getName() . " is already assigned to ticket\n";
                 }
@@ -389,14 +394,18 @@ class TicketApiControllerExtension extends TicketApiController
         // }
         if ($data['team']) {
             if ($team = Team::lookup($data['team'])) {
-                if ($ticket->getTeamId() != $data['team']) {
-                    $oldTeam = $ticket->getTeam();
+                if ($ticket->getTeamId() != $team->getId()) {
+                    if($oldTeam = $ticket->getStaff()){
+                        $oldTeam = $oldTeam->getName();
+                    }else{
+                        $oldTeam = 'No Staff';
+                    }
 
                     $ticket->assignToTeam($team, '', user: $thisstaffuser);
                     $teamAssignee = $team;
                     $fields[] = 'team';
-
-                    $msg .= 'Team Updated. ' . $oldTeam->getName() . ' changed to ' . $team->getName() . "\n";
+ 
+                    $msg .= 'Team Updated. ' . $oldTeam . ' changed to ' . $team->getName() . "\n";
                 } else {
                     $msg .= 'Failed to Update Team. ' . $team->getName() . " is already assigned to ticket\n";
                 }
@@ -413,7 +422,6 @@ class TicketApiControllerExtension extends TicketApiController
                 if ($data['user'] != $ticket->getUserId()) {
                     $oldUser = $ticket->getUser();
                     $ticket->changeOwner($user);
-
                     $msg .= 'User Updated. ' . $oldUser->getName() . ' changed to ' . $user->getName() . "\n";
                 } else {
                     $msg .= 'Failed to Update User. ' . $user->getName() . " is already assigned to ticket\n";
@@ -514,7 +522,6 @@ class TicketApiControllerExtension extends TicketApiController
         if ($data['duedate']) {
             if ($this->isValidDateTimeFormat($data['duedate'])) {
                 if ($data['duedate'] != $ticket->getDueDate()) {
-                    $this->debugToFile($ticket->getDueDate());
                     if (!($oldDueDate = $ticket->getDueDate())) {
                         $oldDueDate = 'Empty Due Date';
                     }
@@ -525,7 +532,7 @@ class TicketApiControllerExtension extends TicketApiController
                     $msg .= 'Failed to Update Due Date. ' . $data['duedate'] . " is already assigned to ticket\n";
                 }
             } else {
-                $msg .= 'Failed to Update Due Date. ' . $data['duedate'] . " is not a valid date, date should have format 'Y-m-d H:i:s'\n";
+                $msg .= 'Failed to Update Due Date. ' . $data['duedate'] . " is not a valid date, date should have format 'YYYY-mm-dd HH:ii:ss'\n";
             }
         }
         // //duedate
@@ -561,8 +568,11 @@ class TicketApiControllerExtension extends TicketApiController
         $field->setValue($data[$fieldString]);
         $form = $field->getEditForm($post);
         if ($form->isValid()) {
-            $ticket->updateField($form, $errors);
+            if($ticket->updateField($form, $errors)){
+                return true;
+            }
         }
+        return false;
     }
 
     /**
