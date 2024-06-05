@@ -521,15 +521,19 @@ class TicketApiControllerExtension extends TicketApiController
         // //duedate
         if ($data['duedate']) {
             if ($this->isValidDateTimeFormat($data['duedate'])) {
-                if ($data['duedate'] != $ticket->getDueDate()) {
-                    if (!($oldDueDate = $ticket->getDueDate())) {
-                        $oldDueDate = 'Empty Due Date';
+                if ($this->isDatePermitted($data['duedate'])) {
+                    if ($data['duedate'] != $ticket->getDueDate()) {
+                        if (!($oldDueDate = $ticket->getDueDate())) {
+                            $oldDueDate = 'Empty Due Date';
+                        }
+                        $this->simulatePost($ticket, 'duedate', $data);
+                        $fields[] = 'duedate';
+                        $msg .= 'Due Date Updated. ' . $oldDueDate . ' changed to ' . $data['duedate'] . "\n";
+                    } else {
+                        $msg .= 'Failed to Update Due Date. ' . $data['duedate'] . " is already assigned to ticket\n";
                     }
-                    $this->simulatePost($ticket, 'duedate', $data);
-                    $fields[] = 'duedate';
-                    $msg .= 'Due Date Updated. ' . $oldDueDate . ' changed to ' . $data['duedate'] . "\n";
                 } else {
-                    $msg .= 'Failed to Update Due Date. ' . $data['duedate'] . " is already assigned to ticket\n";
+                    $msg .= 'Failed to Update Due Date. ' . $data['duedate'] . " is earlier than current date\n";
                 }
             } else {
                 $msg .= 'Failed to Update Due Date. ' . $data['duedate'] . " is not a valid date, date should have format 'YYYY-mm-dd HH:ii:ss'\n";
@@ -591,6 +595,20 @@ class TicketApiControllerExtension extends TicketApiController
         }
         $dateTimeObj = DateTime::createFromFormat($format, $dateTimeString);
         return $dateTimeObj && $dateTimeObj->format($format) == $dateTimeString;
+    }
+
+    /**
+     * Validates if the date sent in the HTTP body is earlier then permitted, permitted date is current date.
+     * 
+     * @param string $dateTime Date sent in the HTTP body.
+     * 
+     * @return boolean true if the date sent is permitted, false if not
+     */
+    function isDatePermitted($dateString) {
+        $receivedDate = new DateTime($dateString);
+        $currentDate = new DateTime();
+
+        return $receivedDate >= $currentDate;
     }
 
     /**

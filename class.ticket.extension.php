@@ -379,6 +379,7 @@ class TicketExtension extends Ticket{
             $this->status = TicketStatus::lookup(STATE_OPEN);
             $status =  STATE_OPEN;
 
+            $this->updateEstDueDate();
         }
 
         //meter a suspend
@@ -401,6 +402,8 @@ class TicketExtension extends Ticket{
             $this->status = TicketStatus::lookup(STATE_SUSPENDED);
             $status =  STATE_SUSPENDED;
         }
+
+        $this->lastupdate = SqlFunction::NOW();
 
         if (!$this->save(true))
             return false;
