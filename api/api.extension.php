@@ -219,7 +219,7 @@ class TicketApiControllerExtension extends TicketApiController
         //cria objetos baseados na informação passada no json
         $number = $data['ticketNumber'];
         $ticket = Ticket::lookup(array('number' => $number));
-        $staff = Staff::lookup($key->ht['id_staff']);
+        $staff = Staff::lookup($key->getStaffId());
 
         $comments = $data['comments'];
 
@@ -279,7 +279,7 @@ class TicketApiControllerExtension extends TicketApiController
         //cria objetos baseados na informação passada no json
         $number = $data['ticketNumber'];
         $ticket = Ticket::lookup(array('number' => $number));
-        $staff = Staff::lookup($key->ht['id_staff']);
+        $staff = Staff::lookup($key->getStaffId());
 
         $comments = $data['comments'];
 
@@ -345,7 +345,7 @@ class TicketApiControllerExtension extends TicketApiController
         $comments = $data['comments'];
 
         global $thisstaff, $cfg;
-        $thisstaff = Staff::lookup($key->ht['id_staff']);
+        $thisstaff = Staff::lookup($key->getStaffId());
         $thisstaffuser = $thisstaff->getUserName();
 
         //fields alterados
@@ -525,6 +525,7 @@ class TicketApiControllerExtension extends TicketApiController
                     if ($data['duedate'] != $ticket->getDueDate()) {
                         if (!($oldDueDate = $ticket->getDueDate())) {
                             $oldDueDate = 'Empty Due Date';
+                            $ticket->setDueDateToNotNull();
                         }
                         $this->simulatePost($ticket, 'duedate', $data);
                         $fields[] = 'duedate';
@@ -760,7 +761,7 @@ class TicketApiControllerExtension extends TicketApiController
         //cria objetos baseados na informação passada no json
         $number = $data['ticketNumber'];
         $ticket = Ticket::lookup(array('number' => $number));
-        $staff = Staff::lookup($key->ht['id_staff']);
+        $staff = Staff::lookup($key->getStaffId());
 
         $comments = $data['comments'];
 
@@ -963,7 +964,12 @@ class TicketApiControllerExtension extends TicketApiController
         if (!($key = $this->requireApiKey()) || !$key->canEditTickets())
             return $this->exerr(401, __('API key not authorized'));
 
-        $res = ApiExtension::getTickets();
+        $staff = Staff::lookup($key->getStaffId());
+        $deptId = $staff->getDeptId();
+        // $deptIds = $staff->getDepts();
+        $isAdmin = $staff->isAdmin();
+
+        $res = ApiExtension::getTickets($deptId, $isAdmin);
 
         if ($res)
             $this->response(201, $res);

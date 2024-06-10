@@ -225,18 +225,25 @@ class ApiExtension extends API
     /**
      * Get Source name.
      * 
+     * @param int $deptId department id of the agent geting this list
+     * @param boolean $isAdmin true if the agent is an admin, false otherwise
+     * 
      * @return mixed (string or boolean) string with results from TicketExtension::getSources(), false if it didnt work
      */
-    static function getTickets()
+    static function getTickets($deptId, $isAdmin)
     {
-        $sql = 'SELECT number FROM ' . TICKET_TABLE;
+        if($isAdmin){
+            $sql = 'SELECT number FROM ' . TICKET_TABLE;
+        }else{
+            $sql = 'SELECT number FROM ' . TICKET_TABLE . ' WHERE dept_id=' . db_input($deptId);
+        }
 
         if (($res = db_query($sql))) {
             $result = '';
             while ($row = $res->fetch_row()) {
                 $ticket = Ticket::lookup(array('number' => $row[0]));
-                $result .= sprintf("Ticket %s - Status: %s, Last Updated: %s, Subject: %s, From: %s, Priority: %s, Assigned To: %s\n", 
-                $row[0],  $ticket->getStatus(), $ticket->getEffectiveDate(), $ticket->getSubject(), User::lookup($ticket->getUserId())->getName(), $ticket->getPriority(), $ticket->getAssignee());
+                $result .= sprintf("Ticket %s (%s) - Status: %s, Last Updated: %s, Subject: %s, From: %s, Priority: %s, Assigned To: %s\n", 
+                $row[0], $ticket->getDept(), $ticket->getStatus(), $ticket->getEffectiveDate(), $ticket->getSubject(), User::lookup($ticket->getUserId())->getName(), $ticket->getPriority(), $ticket->getAssignee());
             }
             $result = rtrim($result, "\n");
             $res->free_result();

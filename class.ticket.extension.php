@@ -367,7 +367,7 @@ class TicketExtension extends Ticket{
 
             $finalDatetimeFormatted = $finalDatetime->format('Y-m-d H:i:s');
 
-            $this->est_duedate = $finalDatetimeFormatted;
+            // $this->est_duedate = $finalDatetimeFormatted; // ja nao é preciso com o updateestdduedate() em baixo
             $this->duedate = $finalDatetimeFormatted;
 
             
@@ -430,6 +430,22 @@ class TicketExtension extends Ticket{
             // Don't log the initial status change
             $this->logEvent('edited', array('status' => $status));
 
+        return true;
+    }
+
+    /**
+     * Changes the due date of the ticket, so it stops being null.
+     * This is used to edit the duedate trhough the API, because it didn't work with the normal way.
+     * 
+     * @return boolean true if saved succefully, false if not
+     */
+    function setDueDateToNotNull(){
+        $date = new DateTime();
+        $date->modify('+1 seconds');
+        $this->duedate = $date;
+        if (!$this->save(true)){
+            return false;
+        }
         return true;
     }
 
