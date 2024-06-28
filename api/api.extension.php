@@ -165,7 +165,7 @@ class TicketApiControllerExtension extends TicketApiController
         $data = $this->getRequest($format);
 
         if(!$data['topicId']){
-            return $this->exerr(500, _S("To create a new ticket you need to specify a topic id"));
+            return $this->exerr(500, _S("To create a new ticket you need to specify a topic id, in field 'topicId'"));
         }
 
         $data['name'] = Staff::lookup($key->getStaffId())->username;
