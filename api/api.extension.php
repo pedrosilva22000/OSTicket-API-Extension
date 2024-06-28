@@ -157,13 +157,17 @@ class TicketApiControllerExtension extends TicketApiController
      */
     function create($format)
     {
-
         if (!($key = $this->requireApiKey()) || !$key->canCreateTickets())
             return $this->exerr(401, __('API key not authorized'));
 
         $ticket = null;
 
         $data = $this->getRequest($format);
+
+        if(!$data['topicId']){
+            return $this->exerr(500, _S("To create a new ticket you need to specify a topic id"));
+        }
+
         $data['name'] = Staff::lookup($key->getStaffId())->username;
         $data['email'] = Staff::lookup($key->getStaffId())->getEmail();
         $ticket = $this->createTicket($data);
@@ -420,9 +424,13 @@ class TicketApiControllerExtension extends TicketApiController
         if ($data['user']) {
             if ($user = User::lookup($data['user'])) {
                 if ($data['user'] != $ticket->getUserId()) {
-                    $oldUser = $ticket->getUser();
+                    if($oldUser = $ticket->getUser()){
+                        $oldUser = $oldUser->getName();
+                    }else{
+                        $oldUser = 'No User';
+                    }
                     $ticket->changeOwner($user);
-                    $msg .= 'User Updated. ' . $oldUser->getName() . ' changed to ' . $user->getName() . "\n";
+                    $msg .= 'User Updated. ' . $oldUser . ' changed to ' . $user->getName() . "\n";
                 } else {
                     $msg .= 'Failed to Update User. ' . $user->getName() . " is already assigned to ticket\n";
                 }
@@ -454,10 +462,10 @@ class TicketApiControllerExtension extends TicketApiController
         if ($data['topic']) {
             if ($topic = Topic::lookup($data['topic'])) {
                 if ($data['topic'] != $ticket->getTopicId()) {
-                    $oldTopic = $ticket->getTopic();
+                    $oldTopic = $ticket->getTopic()->getName();
                     $this->simulatePost($ticket, 'topic', $data);
                     $fields[] = 'topic';
-                    $msg .= 'Topic Updated. ' . $oldTopic->getName() . ' changed to ' . $topic->getName() . "\n";
+                    $msg .= 'Topic Updated. ' . $oldTopic . ' changed to ' . $topic->getName() . "\n";
                 } else {
                     $msg .= 'Failed to Update Topic. ' . $topic->getName() . " is already assigned to ticket\n";
                 }
@@ -471,10 +479,14 @@ class TicketApiControllerExtension extends TicketApiController
         if ($data['sla']) {
             if ($sla = SLA::lookup($data['sla'])) {
                 if ($data['sla'] != $ticket->getSLAId()) {
-                    $oldSLA = $ticket->getSLA();
+                    if($oldSLA = $ticket->getSLA()){
+                        $oldSLA = $oldSLA->getName();
+                    }else{
+                        $oldSLA = 'No SLA';
+                    }
                     $this->simulatePost($ticket, 'sla', $data);
                     $fields[] = 'sla';
-                    $msg .= 'SLA Updated. ' . $oldSLA->getName() . ' changed to ' . $sla->getName() . "\n";
+                    $msg .= 'SLA Updated. ' . $oldSLA . ' changed to ' . $sla->getName() . "\n";
                 } else {
                     $msg .= 'Failed to Update SLA. ' . $sla->getName() . " is already assigned to ticket\n";
                 }
@@ -488,10 +500,14 @@ class TicketApiControllerExtension extends TicketApiController
         if ($data['dept']) {
             if ($dept = Dept::lookup($data['dept'])) {
                 if ($data['dept'] != $ticket->getDeptId()) {
-                    $oldDept = $ticket->getDept();
+                    if($oldDept = $ticket->getDept()){
+                        $oldDept = $oldDept->getName();
+                    }else{
+                        $oldDept = 'No Department';
+                    }
                     $ticket->editFields('dept', $data['dept'], $data['refer']);
                     $fields[] = 'dept';
-                    $msg .= 'Dept Updated. ' . $oldDept->getName() . ' changed to ' . $dept->getName() . "\n";
+                    $msg .= 'Dept Updated. ' . $oldDept . ' changed to ' . $dept->getName() . "\n";
                 } else {
                     $msg .= 'Failed to Update Dept. ' . $dept->getName() . " is already assigned to ticket\n";
                 }
@@ -505,10 +521,14 @@ class TicketApiControllerExtension extends TicketApiController
         if ($data['priority']) {
             if ($priority = Priority::lookup($data['priority'])) {
                 if ($data['priority'] != $ticket->getPriorityId()) {
-                    $oldPriority = $ticket->getPriority();
+                    if($oldPriority = $ticket->getPriority()){
+                        $oldPriority = $oldPriority->getDesc();
+                    }else{
+                        $oldPriority = 'No Priority';
+                    }
                     $ticket->editFields('priority', $data['priority'], '');
                     $fields[] = 'priority';
-                    $msg .= 'Priority Updated. ' . $oldPriority->getDesc() . ' changed to ' . $priority->getDesc() . "\n";
+                    $msg .= 'Priority Updated. ' . $oldPriority . ' changed to ' . $priority->getDesc() . "\n";
                 } else {
                     $msg .= 'Failed to Update Priority. ' . $priority->getDesc() . " is already assigned to ticket\n";
                 }

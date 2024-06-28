@@ -14,14 +14,6 @@
  */
 return array(
     /**
-     * Include path setup.
-     *
-     * This statement sets up the include path to include the 'include' directory
-     * within the plugin directory.
-     */
-    set_include_path(get_include_path() . PATH_SEPARATOR . dirname(__file__) . '/include'),
-
-    /**
      * Unique identifier for the plugin.
      *
      * This ID is used to identify the plugin internally.
