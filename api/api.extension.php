@@ -44,7 +44,7 @@ class TicketApiControllerExtension extends TicketApiController
     }
 
     /**
-     * Gets the objecto of the API key sent as X-API-Key in the HTTP header is valid, exists and is active.
+     * Gets the object of the API key sent as X-API-Key in the HTTP header is valid, exists and is active.
      * Overrides the function with the same name in TicketApiController but removes all IP verifications.
      * 
      * @return object ApiExtension.

@@ -295,7 +295,7 @@ class ApiExtension extends API
      * Add
      *
      * @param array 
-     * @return object
+     * @return object ApiExtension.
      */
     static function add($vars, &$errors)
     {
@@ -305,8 +305,9 @@ class ApiExtension extends API
     /**
      * Save
      *
-     * @param array $vars
      * @param int $id 
+     * @param array $vars
+     * 
      * @return boolean
      */
     static function save($id, $vars, &$errors)

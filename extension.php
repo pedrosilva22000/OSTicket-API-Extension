@@ -244,6 +244,8 @@ class PluginExtension extends Plugin
 	 * Adds a new API key to the specified staff.
 	 * 
 	 * @param string username, email or id of the staff.
+	 * 
+	 * @return string the new API key.
      */
 	function addApiKeyRow($username)
 	{

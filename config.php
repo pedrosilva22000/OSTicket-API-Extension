@@ -13,21 +13,6 @@ require_once(INCLUDE_DIR.'/class.forms.php');
  * This is the class that stores all configuration values of the plugin.
  */
 class PluginConfigExtension extends PluginConfig {
-
-    /**
-     * Provides compatibility function for versions of osTicket prior to translation support (v1.9.4).
-     * @return array from Plugin::translate('auth-passthru').
-     */
-    function translate() {
-        if (!method_exists('Plugin', 'translate')) {
-            return array(
-                function($x) { return $x; },
-                function($x, $y, $n) { return $n != 1 ? $y : $x; },
-            );
-        }
-        return Plugin::translate('auth-passthru');
-    }
-
     /**
      * This function is where all configuration options for the plugin are defined.
      * Every option is a field and is stored as an element of an array.
