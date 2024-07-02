@@ -367,6 +367,10 @@ class PluginExtension extends Plugin
 			array(
 				'prefix' => "delete/tickets",
 				'function' => 'delete'
+			),
+			array(
+				'prefix' => "createStaff",
+				'function' => 'createStaff'
 			)
 		);
 

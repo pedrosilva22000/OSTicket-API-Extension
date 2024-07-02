@@ -13,6 +13,21 @@ require_once(INCLUDE_DIR.'/class.forms.php');
  * This is the class that stores all configuration values of the plugin.
  */
 class PluginConfigExtension extends PluginConfig {
+
+    /**
+     * Provides compatibility function for versions of osTicket prior to translation support (v1.9.4).
+     * @return array from Plugin::translate('auth-passthru').
+     */
+    function translate() {
+        if (!method_exists('Plugin', 'translate')) {
+            return array(
+                function($x) { return $x; },
+                function($x, $y, $n) { return $n != 1 ? $y : $x; },
+            );
+        }
+        return Plugin::translate('auth-passthru');
+    }
+
     /**
      * This function is where all configuration options for the plugin are defined.
      * Every option is a field and is stored as an element of an array.
@@ -26,17 +41,17 @@ class PluginConfigExtension extends PluginConfig {
                 'label' => $__('OSTicket API Extension Configuration Option'),
             )),
             'username' => new TextboxField(array(
-                'label' => __('Username'),
+                'label' => $__('Username'),
                 'required' => true,
                 'configuration' => array('size'=>40),
-                'hint' => __('Admin username to add the first API key.'),
+                'hint' => $__('Admin username to add the first API key.'),
             )),
             'save_info' => new BooleanField(array(
                 'id' => 'save_info',
-                'label' => __('Save New Tables Info'),
+                'label' => $__('Save New Tables Info'),
                 'default' => false,
                 'configuration' => array(
-                    'desc' => __('Saves all values inside the tables added by this plugin after deactivating it, 
+                    'desc' => $__('Saves all values inside the tables added by this plugin after deactivating it, 
                     so when the plugin is activated again it has all the same data as before.')
                 )
             )),

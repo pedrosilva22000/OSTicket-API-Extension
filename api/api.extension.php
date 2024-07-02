@@ -795,6 +795,84 @@ class TicketApiControllerExtension extends TicketApiController
     }
 
     /**
+     * Function executed when the endpoint/url createStaff is called.
+     * 
+     * Verifies if the key is valid and the user making the request is an admin.
+     * 
+     * Creates a new staff.
+     * 
+     * Makes a response with the staff created info.
+     * If there are errors response has code 500 and specified error.
+     * 
+     * @param object $format Json sent in the HTTP body.
+     */
+    function createStaff($format)
+    {
+
+        if (!($key = $this->requireApiKey()) || !Staff::lookup($key->getStaffId())->isAdmin())
+            return $this->exerr(401, __('API key not authorized'));
+
+        $newstaff = null;
+        $newstaff = $this->createStaffBMain($this->getRequest($format), $msg);
+
+        if ($newstaff)
+            $this->response(201, _S($msg));
+        else
+            $this->exerr(500, _S($msg));
+    }
+
+    /**
+     * Creates a new agent.
+     * 
+     * @param array $data Array with the values from the Json sent in the HTTP body.
+     * @param object $msg API's response message.
+     * 
+     * @return mixed (Staff or boolean) staff created, if staff was not created returns false.
+     */
+    function createStaffBMain($data, &$msg){
+        if (!isset($data['email']) || !isset($data['username']) || !isset($data['passwd']) || !isset($data['firstname'])
+         || !isset($data['lastname']) || !isset($data['dept_id']) || !isset($data['role_id'])){
+            $msg = 'The following fields are required: `username`, `email`, `passwd`, `firstname`, `lastname`, `dept_id` and `role_id`';
+            return false;
+        }
+
+        if (Staff::getIdByUsername($data['username'])) {
+            $msg = 'Username already in use by another agent';
+            return false;
+        }
+        if(Staff::getIdByEmail($data['email'])){
+            $msg = 'Email already in use by another agent';
+            return false;
+        }
+        if(Email::getIdByEmail($data['email']))
+        {
+            $msg = 'Already in use system email';
+            return false;
+        }
+
+        $data['isadmin'] = isset($data['isadmin']) ? 1 : 0;
+        $data['isvisible'] = isset($data['isvisible']) ? 1 : 0;
+        $data['onvacation'] = isset($data['onvacation']) ? 1 : 0;
+        $data['assigned_only'] = isset($data['assigned_only']) ? 1 : 0;
+
+        $agent = Staff::create($data);
+        $agent->updatePerms($data['perms'], $msg);
+        $agent->setPassword($data['passwd'], null);
+
+        if($agent->save()){
+            $agent->setExtraAttr('def_assn_role',
+                isset($vars['assign_use_pri_role']), true);
+            $msg = 'Staff ' . $agent->getName() . ' created';
+            return $agent;
+        }
+
+        $msg = 'Failed to create staff';
+        return false;
+    }
+
+
+
+    /**
      * Function executed when the endpoint/url departments is called.
      * 
      * Gets all departments.
