@@ -795,7 +795,7 @@ class TicketApiControllerExtension extends TicketApiController
     }
 
     /**
-     * Function executed when the endpoint/url createStaff is called.
+     * Function executed when the endpoint/url create/staff is called.
      * 
      * Verifies if the key is valid and the user making the request is an admin.
      * 
@@ -860,8 +860,15 @@ class TicketApiControllerExtension extends TicketApiController
         $agent->setPassword($data['passwd'], null);
 
         if($agent->save()){
-            $agent->setExtraAttr('def_assn_role',
-                isset($vars['assign_use_pri_role']), true);
+            $agent->setExtraAttr('def_assn_role', isset($vars['assign_use_pri_role']), true);
+
+            if($data['access']){
+                $agent->updateAccess($data['access'], $errors);
+            }
+            if($data['membership']){
+                $agent->updateTeams($data['membership'], $errors);
+            }
+
             $msg = 'Staff ' . $agent->getName() . ' created';
             return $agent;
         }
@@ -870,7 +877,83 @@ class TicketApiControllerExtension extends TicketApiController
         return false;
     }
 
+    /**
+     * Function executed when the endpoint/url update/staff is called.
+     * 
+     * Verifies if the key is valid and the user making the request is an admin.
+     * 
+     * Creates a new staff.
+     * 
+     * Makes a response with the staff updated info.
+     * If there are errors response has code 500 and specified error.
+     * 
+     * @param object $format Json sent in the HTTP body.
+     */
+    function updateStaff($format)
+    {
+        if (!($key = $this->requireApiKey()) || !Staff::lookup($key->getStaffId())->isAdmin())
+            return $this->exerr(401, __('API key not authorized'));
 
+        $newstaff = null;
+        $newstaff = $this->updateStaffMain($this->getRequest($format), $msg);
+
+        if ($newstaff)
+            $this->response(201, _S($msg));
+        else
+            $this->exerr(500, _S($msg));
+    }
+
+    /**
+     * Updates an agent.
+     * 
+     * @param array $data Array with the values from the Json sent in the HTTP body.
+     * @param object $msg API's response message.
+     * 
+     * @return mixed (Staff or boolean) staff created, if staff was not created returns false.
+     */
+    function updateStaffMain($data, &$msg){
+        
+        if (!isset($data['id'])){
+            $msg = 'The field `id` is required';
+            return false;
+        }
+        elseif(!($agent = Staff::lookup($data['id']))){
+            $msg = 'Staff does not exist';
+            return false;
+        }
+
+        $data['email'] = $data['email'] ?? $agent->getEmail();
+        $data['username'] = $data['username'] ?? $agent->getUsername();
+        $data['firstname'] = $data['firstname'] ?? $agent->getFirstName();
+        $data['lastname'] = $data['lastname'] ?? $agent->getLastName();
+        $data['dept_id'] = $data['dept_id'] ?? $agent->getDeptId();
+        $data['role_id'] = $data['role_id'] ?? $agent->ht['role_id'];
+        $data['phone'] = $data['phone'] ?? $agent->ht['phone'];
+        $data['phone_ext'] = $data['phone_ext'] ?? $agent->ht['phone_ext'];
+        $data['mobile'] = $data['mobile'] ?? $agent->ht['mobile'];
+        $data['signature'] = $data['signature'] ?? $agent->ht['signature'];
+        $data['timezone'] = $data['timezone'] ?? $agent->ht['timezone'];
+        $data['locale'] = $data['locale'] ?? $agent->ht['locale'];
+        $data['max_page_size'] = $data['max_page_size'] ?? $agent->ht['max_page_size'];
+        $data['auto_refresh_rate'] = $data['auto_refresh_rate'] ?? $agent->ht['auto_refresh_rate'];
+        $data['default_signature_type'] = $data['default_signature_type'] ?? $agent->ht['default_signature_type'];
+        $data['default_paper_size'] = $data['default_paper_size'] ?? $agent->ht['default_paper_size'];
+        $data['lang'] = $data['lang'] ?? $agent->ht['lang'];
+        $data['onvacation'] = $data['onvacation'] ?? $agent->ht['onvacation'];
+        $data['backend'] = $data['backend'] ?? $agent->ht['backend'];
+        $data['assigned_only'] = $data['assigned_only'] ?? $agent->ht['assigned_only'];
+        $data['onvacation'] = $data['onvacation'] ?? $agent->ht['onvacation'];
+        $data['isadmin'] = $data['isadmin'] ?? $agent->ht['isadmin'];
+        $data['isactive'] = $data['isactive'] ?? $agent->ht['isactive'];
+        $data['isvisible'] = $data['isvisible'] ?? $agent->ht['isvisible'];
+        $data['perms'] = $data['perms'] ?? $agent->ht['perms'];
+
+        if($agent->update($data, $msg)){
+            $msg = 'Staff ' . $agent->getName() . ' updated';
+            return true;
+        }
+        return false;
+    }
 
     /**
      * Function executed when the endpoint/url departments is called.
