@@ -855,11 +855,11 @@ class TicketApiControllerExtension extends TicketApiController
         $data['onvacation'] = isset($data['onvacation']) ? 1 : 0;
         $data['assigned_only'] = isset($data['assigned_only']) ? 1 : 0;
 
-        // $data['backend'] = "local"; #Perguntar se cria com autenticação local e enciar mail para criar password (como na iknterface), ou meter diretamente password
+        $data['backend'] = "local"; #Perguntar se cria com autenticação local e enciar mail para criar password (como na iknterface), ou meter diretamente password
 
         $agent = Staff::create($data);
         $agent->updatePerms($data['perms'], $msg);
-        $agent->setPassword($data['passwd'], null);
+        // $agent->setPassword($data['passwd'], null);
 
         if($agent->save()){
             $agent->setExtraAttr('def_assn_role', isset($vars['assign_use_pri_role']), true);
@@ -871,7 +871,7 @@ class TicketApiControllerExtension extends TicketApiController
                 $agent->updateTeams($data['membership'], $errors);
             }
 
-            // $agent->sendResetEmail(); #Perguntar se cria com autenticação local e enciar mail para criar password (como na iknterface), ou meter diretamente password
+            $agent->sendResetEmail(); #Perguntar se cria com autenticação local e enciar mail para criar password (como na iknterface), ou meter diretamente password
 
             $msg = 'Staff ' . $agent->getName() . ' created';
             return $agent;
