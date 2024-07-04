@@ -171,11 +171,11 @@ class TicketApiControllerExtension extends TicketApiController
         $data['name'] = Staff::lookup($key->getStaffId())->username;
         $data['email'] = Staff::lookup($key->getStaffId())->getEmail();
         $ticket = $this->createTicket($data);
-
+        
         if ($ticket)
             $this->response(201, _S("Ticket ") . $ticket->getNumber() . _S(" Created"));
         else
-            $this->exerr(500, _S("unknown error"));
+            $this->exerr(500, _S("Fail to create Ticket"));
     }
 
 
@@ -652,7 +652,9 @@ class TicketApiControllerExtension extends TicketApiController
         $ticket = null;
 
         $msg = '';
-        $ticket = $this->suspendTicket($this->getRequest($format), $key, 'Open', $msg);
+
+        $ticket = $this->suspendTicket($this->getRequest($format), $key, TicketStatus::lookup(STATE_OPEN)->getValue() 
+, $msg);
 
         if ($ticket)
             $this->response(201, $msg);
@@ -680,7 +682,8 @@ class TicketApiControllerExtension extends TicketApiController
         $ticket = null;
 
         $msg = '';
-        $ticket = $this->suspendTicket($this->getRequest($format), $key, 'Suspended', $msg);
+        
+        $ticket = $this->suspendTicket($this->getRequest($format), $key, TicketStatus::lookup(STATE_SUSPENDED)->getValue(), $msg);
 
         if ($ticket)
             $this->response(201, $msg);
@@ -708,7 +711,7 @@ class TicketApiControllerExtension extends TicketApiController
         global $thisstaff;
         $thisstaff = $staff;
 
-        if ($status == 'Open') {
+        if ($status == TicketStatus::lookup(STATE_OPEN)->getValue()) {
             if($ticket->getStatusId() == STATE_SUSPENDED){
                 $msg = 'Ticket ' . $number . ' is already Suspended';
                 return $msg;
@@ -720,7 +723,7 @@ class TicketApiControllerExtension extends TicketApiController
             else{
                 $msg = "Ticket " . $number . " Failed to Suspend";
             }
-        } else {
+        } elseif(TicketStatus::lookup(STATE_SUSPENDED)->getValue()) {
             if($ticket->getStatusId() == STATE_OPEN){
                 $msg = 'Ticket ' . $number . ' is already Unsuspended';
                 return $msg;
@@ -813,7 +816,7 @@ class TicketApiControllerExtension extends TicketApiController
             return $this->exerr(401, __('API key not authorized'));
 
         $newstaff = null;
-        $newstaff = $this->createStaffBMain($this->getRequest($format), $msg);
+        $newstaff = $this->createStaffMain($this->getRequest($format), $msg);
 
         if ($newstaff)
             $this->response(201, _S($msg));
@@ -855,11 +858,11 @@ class TicketApiControllerExtension extends TicketApiController
         $data['onvacation'] = isset($data['onvacation']) ? 1 : 0;
         $data['assigned_only'] = isset($data['assigned_only']) ? 1 : 0;
 
-        $data['backend'] = "local"; #Perguntar se cria com autenticação local e enciar mail para criar password (como na iknterface), ou meter diretamente password
+        //$data['backend'] = "local"; #Perguntar se cria com autenticação local e enciar mail para criar password (como na iknterface), ou meter diretamente password
 
         $agent = Staff::create($data);
         $agent->updatePerms($data['perms'], $msg);
-        // $agent->setPassword($data['passwd'], null);
+        $agent->setPassword($data['passwd'], null);
 
         if($agent->save()){
             $agent->setExtraAttr('def_assn_role', isset($vars['assign_use_pri_role']), true);
@@ -871,7 +874,7 @@ class TicketApiControllerExtension extends TicketApiController
                 $agent->updateTeams($data['membership'], $errors);
             }
 
-            $agent->sendResetEmail(); #Perguntar se cria com autenticação local e enciar mail para criar password (como na iknterface), ou meter diretamente password
+            //$agent->sendResetEmail(); #Perguntar se cria com autenticação local e enciar mail para criar password (como na iknterface), ou meter diretamente password
 
             $msg = 'Staff ' . $agent->getName() . ' created';
             return $agent;

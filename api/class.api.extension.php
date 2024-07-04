@@ -258,7 +258,7 @@ class ApiExtension extends API
      * @param string $key The key of the API key to be looked up.
      * @return object ApiExtension with information regarding the API key.
      */
-    static function lookupByKeynPRJ($key)
+    static function lookupByKeyPRJ($key)
     {
         return self::lookup(self::getIdByKeyPRJ($key));
     }

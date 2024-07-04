@@ -327,7 +327,7 @@ class TicketExtension extends Ticket{
 
 
         //tirar o suspend
-        if ($status == 'Suspended') {
+        if ($status == TicketStatus::lookup(STATE_SUSPENDED)->getValue()) {
 
 
 
@@ -396,7 +396,7 @@ class TicketExtension extends Ticket{
         }
 
         //meter a suspend
-        elseif ($status == 'Open') {
+        elseif ($status == TicketStatus::lookup(STATE_OPEN)->getValue()) {
 
             if ($errors) return false;
 
