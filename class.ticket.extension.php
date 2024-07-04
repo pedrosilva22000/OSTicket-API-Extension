@@ -331,16 +331,29 @@ class TicketExtension extends Ticket{
 
 
 
-            $query_update = 'UPDATE ' . SUSPEND_NEW_TABLE . ' SET date_end_suspension=NOW()'
+             /* $query_update = 'UPDATE ' . SUSPEND_NEW_TABLE . ' SET date_end_suspension=NOW()'
                 . 'WHERE number_ticket=' . $this->getNumber()
-                . ' AND id=(SELECT MAX(id) FROM ' . SUSPEND_NEW_TABLE . ' WHERE number_ticket =' . $this->getNumber() . ')';
+                . ' AND id=(SELECT MAX(id) FROM ' . SUSPEND_NEW_TABLE . ' WHERE number_ticket =' . $this->getNumber() . ')'; */
+            
+            $query_update = 'UPDATE ' . SUSPEND_NEW_TABLE . ' SET date_end_suspension=NOW()'
+            . ' WHERE number_ticket=' . $this->getNumber()
+            . ' AND date_of_suspension=(SELECT MAX(date_of_suspension) FROM ' . SUSPEND_NEW_TABLE 
+            . ' WHERE number_ticket=' . $this->getNumber() . ')';
+
 
             if (!db_query($query_update))
                 return false;
 
 
-            $query_time = 'SELECT TIMEDIFF(date_end_suspension,date_of_suspension) AS suspension_duration FROM ost_suspended_ticket WHERE number_ticket =' . $this->getNumber()
-                . '  AND id=(SELECT MAX(id) FROM ' . SUSPEND_NEW_TABLE . ' WHERE number_ticket =' . $this->getNumber() . ')';
+            /* $query_time = 'SELECT TIMEDIFF(date_end_suspension,date_of_suspension) AS suspension_duration FROM ost_suspended_ticket WHERE number_ticket =' . $this->getNumber()
+                . '  AND id=(SELECT MAX(id) FROM ' . SUSPEND_NEW_TABLE . ' WHERE number_ticket =' . $this->getNumber() . ')'; */
+
+            $query_time = 'SELECT TIMEDIFF(date_end_suspension, date_of_suspension) AS suspension_duration 
+               FROM ost_suspended_ticket 
+               WHERE number_ticket=' . $this->getNumber() . 
+              ' AND date_of_suspension=(SELECT MAX(date_of_suspension) 
+                                       FROM ' . SUSPEND_NEW_TABLE . 
+                                       ' WHERE number_ticket=' . $this->getNumber() . ')';
 
             $res = db_query($query_time);
             if (!$res)

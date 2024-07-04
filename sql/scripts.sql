@@ -20,7 +20,6 @@ INSERT IGNORE INTO `%TABLE_PREFIX%ticket_status` (`name`, `state`, `mode`, `flag
 VALUES ('Suspended', 'open', 3, 0, 6, '{"description":"Tickets are still open but time isnt counting"}', NOW(), NOW());
 
 CREATE TABLE IF NOT EXISTS `%TABLE_PREFIX%suspended_ticket` (
-    `id` INT AUTO_INCREMENT PRIMARY KEY,
     `number_ticket` INT NOT NULL,
     `date_of_suspension` DATETIME NOT NULL,
     `date_end_suspension` DATETIME

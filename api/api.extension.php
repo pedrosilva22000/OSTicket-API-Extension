@@ -829,7 +829,7 @@ class TicketApiControllerExtension extends TicketApiController
      * 
      * @return mixed (Staff or boolean) staff created, if staff was not created returns false.
      */
-    function createStaffBMain($data, &$msg){
+    function createStaffMain($data, &$msg){
         if (!isset($data['email']) || !isset($data['username']) || !isset($data['passwd']) || !isset($data['firstname'])
          || !isset($data['lastname']) || !isset($data['dept_id']) || !isset($data['role_id'])){
             $msg = 'The following fields are required: `username`, `email`, `passwd`, `firstname`, `lastname`, `dept_id` and `role_id`';
