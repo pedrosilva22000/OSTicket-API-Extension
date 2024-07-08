@@ -313,8 +313,9 @@ class TicketExtension extends Ticket{
      * @param string $status actual status of the ticket before the change
      * @param string $comments comments made when suspending/unsuspending ticket.
      * @param string $errors errors found so far.
+     * @param boolean $addToDB variable that indicates if when suspending a ticket it should be added to the database, used when suspending tickets again after reeinstalling the plugin.
      */
-    function setSuspend($status, $comments = '', &$errors = array())
+    function setSuspend($status, $comments = '', &$errors = array(), $addToDB = true)
     {
         global $cfg, $thisstaff;
 
@@ -324,71 +325,70 @@ class TicketExtension extends Ticket{
         $hadStatus = $this->getStatusId();
         $ecb = $refer = null;
 
-
-
         //tirar o suspend
         if ($status == TicketStatus::lookup(STATE_SUSPENDED)->getValue()) {
 
+            if($addToDB){
+
+                /* $query_update = 'UPDATE ' . SUSPEND_NEW_TABLE . ' SET date_end_suspension=NOW()'
+                    . 'WHERE number_ticket=' . $this->getNumber()
+                    . ' AND id=(SELECT MAX(id) FROM ' . SUSPEND_NEW_TABLE . ' WHERE number_ticket =' . $this->getNumber() . ')'; */
+                
+                $query_update = 'UPDATE ' . SUSPEND_NEW_TABLE . ' SET date_end_suspension=NOW()'
+                . ' WHERE number_ticket=' . $this->getNumber()
+                . ' AND date_of_suspension=(SELECT MAX(date_of_suspension) FROM ' . SUSPEND_NEW_TABLE 
+                . ' WHERE number_ticket=' . $this->getNumber() . ')';
 
 
-             /* $query_update = 'UPDATE ' . SUSPEND_NEW_TABLE . ' SET date_end_suspension=NOW()'
-                . 'WHERE number_ticket=' . $this->getNumber()
-                . ' AND id=(SELECT MAX(id) FROM ' . SUSPEND_NEW_TABLE . ' WHERE number_ticket =' . $this->getNumber() . ')'; */
-            
-            $query_update = 'UPDATE ' . SUSPEND_NEW_TABLE . ' SET date_end_suspension=NOW()'
-            . ' WHERE number_ticket=' . $this->getNumber()
-            . ' AND date_of_suspension=(SELECT MAX(date_of_suspension) FROM ' . SUSPEND_NEW_TABLE 
-            . ' WHERE number_ticket=' . $this->getNumber() . ')';
+                if (!db_query($query_update))
+                    return false;
 
 
-            if (!db_query($query_update))
-                return false;
+                /* $query_time = 'SELECT TIMEDIFF(date_end_suspension,date_of_suspension) AS suspension_duration FROM ost_suspended_ticket WHERE number_ticket =' . $this->getNumber()
+                    . '  AND id=(SELECT MAX(id) FROM ' . SUSPEND_NEW_TABLE . ' WHERE number_ticket =' . $this->getNumber() . ')'; */
 
+                $query_time = 'SELECT TIMEDIFF(date_end_suspension, date_of_suspension) AS suspension_duration 
+                FROM ost_suspended_ticket 
+                WHERE number_ticket=' . $this->getNumber() . 
+                ' AND date_of_suspension=(SELECT MAX(date_of_suspension) 
+                                        FROM ' . SUSPEND_NEW_TABLE . 
+                                        ' WHERE number_ticket=' . $this->getNumber() . ')';
 
-            /* $query_time = 'SELECT TIMEDIFF(date_end_suspension,date_of_suspension) AS suspension_duration FROM ost_suspended_ticket WHERE number_ticket =' . $this->getNumber()
-                . '  AND id=(SELECT MAX(id) FROM ' . SUSPEND_NEW_TABLE . ' WHERE number_ticket =' . $this->getNumber() . ')'; */
-
-            $query_time = 'SELECT TIMEDIFF(date_end_suspension, date_of_suspension) AS suspension_duration 
-               FROM ost_suspended_ticket 
-               WHERE number_ticket=' . $this->getNumber() . 
-              ' AND date_of_suspension=(SELECT MAX(date_of_suspension) 
-                                       FROM ' . SUSPEND_NEW_TABLE . 
-                                       ' WHERE number_ticket=' . $this->getNumber() . ')';
-
-            $res = db_query($query_time);
-            if (!$res)
-                return false;
+                $res = db_query($query_time);
+                if (!$res)
+                    return false;
 
 
 
 
-            //fazer a diferença e dps meter os valores
+                //fazer a diferença e dps meter os valores
 
-            $initialDatetime = new DateTime($this->getSLADueDate(false));
-            
+                $initialDatetime = new DateTime($this->getSLADueDate(false));
+                
 
-            $finalDatetime = clone $initialDatetime;
-            
-            $durationToSubtract = db_result($res);
-
-        
-
-            list($hours, $minutes, $seconds) = explode(':', $durationToSubtract);
-            $interval = new DateInterval("PT{$hours}H{$minutes}M{$seconds}S");
-            
-            $finalDatetime->add($interval);
-
-            $finalDatetimeFormatted = $finalDatetime->format('Y-m-d H:i:s');
-
-            // $this->est_duedate = $finalDatetimeFormatted; // ja nao é preciso com o updateestdduedate() em baixo
-            $this->duedate = $finalDatetimeFormatted;
+                $finalDatetime = clone $initialDatetime;
+                
+                $durationToSubtract = db_result($res);
 
             
-            //limpar o overdue se exitir
-            if ($finalDatetime > $initialDatetime)
-                $this->clearOverdue(false);
 
+                list($hours, $minutes, $seconds) = explode(':', $durationToSubtract);
+                $interval = new DateInterval("PT{$hours}H{$minutes}M{$seconds}S");
+                
+                $finalDatetime->add($interval);
 
+                $finalDatetimeFormatted = $finalDatetime->format('Y-m-d H:i:s');
+
+                // $this->est_duedate = $finalDatetimeFormatted; // ja nao é preciso com o updateestdduedate() em baixo
+                $this->duedate = $finalDatetimeFormatted;
+
+                
+                //limpar o overdue se exitir
+                if ($finalDatetime > $initialDatetime)
+                    $this->clearOverdue(false);
+
+            }
+            
             $this->status = TicketStatus::lookup(STATE_OPEN);
             $status =  STATE_OPEN;
 
@@ -400,17 +400,20 @@ class TicketExtension extends Ticket{
 
             if ($errors) return false;
 
-            $query = 'INSERT INTO ' . SUSPEND_NEW_TABLE . ' SET '
-                . 'number_ticket=' . $this->getNumber()
-                . ', date_of_suspension=NOW()';
-            $query .= ', date_end_suspension=NULL';
+            if($addToDB){
+                $query = 'INSERT INTO ' . SUSPEND_NEW_TABLE . ' SET '
+                    . 'number_ticket=' . $this->getNumber()
+                    . ', date_of_suspension=NOW()';
+                $query .= ', date_end_suspension=NULL';
+
+                if (!db_query($query)){
+                    return false;
+                }
+            }
 
             //definir o due date como null
             /* $this->est_duedate = Null;
             $this->duedate = Null; */
-
-            if (!db_query($query))
-                return false;
 
             $this->status = TicketStatus::lookup(STATE_SUSPENDED);
             $status =  STATE_SUSPENDED;

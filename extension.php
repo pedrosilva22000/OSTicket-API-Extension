@@ -50,8 +50,19 @@ class PluginExtension extends Plugin
 		self::registerEndpoints();
 		
 		if($this->isTableEmpty(API_NEW_TABLE)){
-			$key = $this->addApiKeyRow($username);
-			$config->set('apikey', $key);		
+			$saveInfo = false;
+			$instances = $this->getActiveInstances();
+			foreach ($instances as $instance) {
+				$saveInfo = $instance->getConfig()->get('save_info');
+			}
+
+			if($saveInfo){
+				$this->populateSavedData();
+			}
+			else{
+				$key = $this->addApiKeyRow($username);
+				$config->set('apikey', $key);	
+			}
 		}
 	}
 
@@ -165,6 +176,9 @@ class PluginExtension extends Plugin
 			);
 			$this->storeData($tableNames, SAVED_DATA_SQL);
 		}
+
+		$this->openAllSuspendedTickets();
+
 		//desisntala as tabelas e linhas novas da base de dados
 		$installer = new TableInstaller();
 		$installer->runJob(UNINSTALL_SCRIPT);
@@ -219,7 +233,7 @@ class PluginExtension extends Plugin
 
 			foreach ($array as $arr) {
 				foreach ($columns as $index => $column) {
-					$valuesArrays[$index][] = "'" . addslashes($arr[$column]) . "'";
+					$valuesArrays[$index][] = is_null($arr[$column]) ? "NULL" : "'" . addslashes($arr[$column]) . "'";
 				}
 			}
 
@@ -238,6 +252,38 @@ class PluginExtension extends Plugin
 
 		fclose($file);
 
+	}
+
+	/**
+     * Changes the status of all suspended tickets to Open before deleting the suspended status from the database.
+	 * This is used before uninstalling the plugin and removing everything from the database.
+     */
+	private function openAllSuspendedTickets(){
+		$sql = 'SELECT ticket_id FROM ' . TICKET_TABLE . ' WHERE status_id = ' . STATE_SUSPENDED;
+
+		if($res = db_query($sql)){
+			while ($row = $res->fetch_row()) {
+				$ticket = Ticket::lookup($row[0]);
+				$ticket->setStatus(TicketStatus::lookup(STATE_OPEN));
+            }
+			$res->free_result();
+		}
+	}
+
+	/**
+     * Changes the status of all tickets that were suspended before the plugin was uninstalled.
+	 * This is used when the plugin is installed with prevous data.
+     */
+	private function suspendAllPreviousSuspendedTickets(){
+		$sql = 'SELECT number_ticket FROM ' . SUSPEND_NEW_TABLE . ' WHERE date_end_suspension IS NULL';
+
+		if($res = db_query($sql)){
+			while ($row = $res->fetch_row()) {
+				$ticket = TicketExtension::lookup(array('number' => $row[0]));
+				$ticket->setSuspend(TicketStatus::lookup(STATE_OPEN)->getValue(), addToDB: false);
+			}
+			$res->free_result();
+		}
 	}
 
 	/**
@@ -308,10 +354,14 @@ class PluginExtension extends Plugin
 
 	/**
 	 * Inserts all the stored data from previous plugin uses in the new tables.
+	 * 
+	 * And changes all previous suspended tickets back to suspended.
      */
 	function populateSavedData(){
 		$installer = new TableInstaller();
 		$installer->runJob(SAVED_DATA_SQL);
+
+		$this->suspendAllPreviousSuspendedTickets();
 	}
 
 	/**
@@ -375,6 +425,10 @@ class PluginExtension extends Plugin
 			array(
 				'prefix' => "update/staff",
 				'function' => 'updateStaff'
+			),
+			array(
+				'prefix' => "update/staffProfile",
+				'function' => 'updateStaffProfile'
 			)
 		);
 

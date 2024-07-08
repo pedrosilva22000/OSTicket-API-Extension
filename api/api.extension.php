@@ -889,7 +889,7 @@ class TicketApiControllerExtension extends TicketApiController
      * 
      * Verifies if the key is valid and the user making the request is an admin.
      * 
-     * Creates a new staff.
+     * Updates the staff.
      * 
      * Makes a response with the staff updated info.
      * If there are errors response has code 500 and specified error.
@@ -929,24 +929,11 @@ class TicketApiControllerExtension extends TicketApiController
             return false;
         }
 
-        $data['email'] = $data['email'] ?? $agent->getEmail();
-        $data['username'] = $data['username'] ?? $agent->getUsername();
-        $data['firstname'] = $data['firstname'] ?? $agent->getFirstName();
-        $data['lastname'] = $data['lastname'] ?? $agent->getLastName();
+        $this->commonStaffUpdates($data, $agent);
+
         $data['dept_id'] = $data['dept_id'] ?? $agent->getDeptId();
         $data['role_id'] = $data['role_id'] ?? $agent->ht['role_id'];
-        $data['phone'] = $data['phone'] ?? $agent->ht['phone'];
-        $data['phone_ext'] = $data['phone_ext'] ?? $agent->ht['phone_ext'];
-        $data['mobile'] = $data['mobile'] ?? $agent->ht['mobile'];
-        $data['signature'] = $data['signature'] ?? $agent->ht['signature'];
-        $data['timezone'] = $data['timezone'] ?? $agent->ht['timezone'];
-        $data['locale'] = $data['locale'] ?? $agent->ht['locale'];
-        $data['max_page_size'] = $data['max_page_size'] ?? $agent->ht['max_page_size'];
-        $data['auto_refresh_rate'] = $data['auto_refresh_rate'] ?? $agent->ht['auto_refresh_rate'];
-        $data['default_signature_type'] = $data['default_signature_type'] ?? $agent->ht['default_signature_type'];
-        $data['default_paper_size'] = $data['default_paper_size'] ?? $agent->ht['default_paper_size'];
-        $data['lang'] = $data['lang'] ?? $agent->ht['lang'];
-        $data['onvacation'] = $data['onvacation'] ?? $agent->ht['onvacation'];
+        
         $data['backend'] = $data['backend'] ?? $agent->ht['backend'];
         $data['assigned_only'] = $data['assigned_only'] ?? $agent->ht['assigned_only'];
         $data['onvacation'] = $data['onvacation'] ?? $agent->ht['onvacation'];
@@ -960,6 +947,93 @@ class TicketApiControllerExtension extends TicketApiController
             return true;
         }
         return false;
+    }
+
+    /**
+     * Function executed when the endpoint/url update/staffProfile is called.
+     * 
+     * Verifies if the key is valid and the updates the profile of the user making the request.
+     * 
+     * Updates the staff staff.
+     * 
+     * Makes a response with the staff updated info.
+     * If there are errors response has code 500 and specified error.
+     * 
+     * @param object $format Json sent in the HTTP body.
+     */
+    function updateStaffProfile($format)
+    {
+        if (!($key = $this->requireApiKey()))
+            return $this->exerr(401, __('API key not authorized'));
+
+        $newstaff = null;
+        $newstaff = $this->updateStaffProfileMain($this->getRequest($format), $msg, $key->getStaffId());
+
+        if ($newstaff)
+            $this->response(201, _S($msg));
+        else
+            $this->exerr(500, _S($msg));
+    }
+
+    /**
+     * Updates an agent.
+     * 
+     * @param array $data Array with the values from the Json sent in the HTTP body.
+     * @param object $msg API's response message.
+     * 
+     * @return mixed (Staff or boolean) staff created, if staff was not created returns false.
+     */
+    function updateStaffProfileMain($data, &$msg, $staffId){
+        
+        if(!($agent = Staff::lookup($staffId))){
+            $msg = 'Staff does not exist';
+            return false;
+        }
+
+        $data['id'] = $agent->getId();
+        
+        $this->commonStaffUpdates($data, $agent);
+
+        //config
+        $data['datetime_format'] = $data['datetime_format'] ?? $agent->ht['datetime_format'];
+        $data['default_from_name'] = $data['default_from_name'] ?? $agent->ht['default_from_name'];
+        $data['default_2fa'] = $data['default_2fa'] ?? $agent->ht['default_2fa'];
+        $data['thread_view_order'] = $data['thread_view_order'] ?? $agent->ht['thread_view_order'];
+        $data['default_ticket_queue_id'] = $data['default_ticket_queue_id'] ?? $agent->ht['default_ticket_queue_id'];
+        $data['reply_redirect'] = $data['reply_redirect'] ?? $agent->ht['reply_redirect'];
+        $data['img_att_view'] = $data['img_att_view'] ?? $agent->ht['img_att_view'];
+        $data['editor_spacing'] = $data['editor_spacing'] ?? $agent->ht['editor_spacing'];
+
+        if($agent->updateProfile($data, $msg)){
+            $msg = 'Agent ' . $agent->getName() . ' profile updated';
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Makes a lot of the values to default to the values of the agent, if they were not set in the JSON.
+     * 
+     * @param array $data Array with the values from the Json sent in the HTTP body.
+     * @param Staff $agent The agent to be updated.
+     */
+    private function commonStaffUpdates(&$data, $agent){
+        $data['email'] = $data['email'] ?? $agent->getEmail();
+        $data['username'] = $data['username'] ?? $agent->getUsername();
+        $data['firstname'] = $data['firstname'] ?? $agent->getFirstName();
+        $data['lastname'] = $data['lastname'] ?? $agent->getLastName();
+        $data['phone'] = $data['phone'] ?? $agent->ht['phone'];
+        $data['phone_ext'] = $data['phone_ext'] ?? $agent->ht['phone_ext'];
+        $data['mobile'] = $data['mobile'] ?? $agent->ht['mobile'];
+        $data['signature'] = $data['signature'] ?? $agent->ht['signature'];
+        $data['timezone'] = $data['timezone'] ?? $agent->ht['timezone'];
+        $data['locale'] = $data['locale'] ?? $agent->ht['locale'];
+        $data['max_page_size'] = $data['max_page_size'] ?? $agent->ht['max_page_size'];
+        $data['auto_refresh_rate'] = $data['auto_refresh_rate'] ?? $agent->ht['auto_refresh_rate'];
+        $data['default_signature_type'] = $data['default_signature_type'] ?? $agent->ht['default_signature_type'];
+        $data['default_paper_size'] = $data['default_paper_size'] ?? $agent->ht['default_paper_size'];
+        $data['lang'] = $data['lang'] ?? $agent->ht['lang'];
+        $data['onvacation'] = $data['onvacation'] ?? $agent->ht['onvacation'];
     }
 
     /**
