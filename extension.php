@@ -14,6 +14,7 @@ require_once 'config.php';
 
 include INCLUDE_DIR . 'class.dispatcher.php';
 
+
 /**
  * Class PluginExtension.
  *
@@ -44,6 +45,7 @@ class PluginExtension extends Plugin
      */
 	function bootstrap()
 	{
+
 		$config = $this->getConfig();
 		$username = $config->get('username');
 
@@ -55,15 +57,14 @@ class PluginExtension extends Plugin
 			foreach ($instances as $instance) {
 				$saveInfo = $instance->getConfig()->get('save_info');
 			}
-
 			if($saveInfo){
-				$this->populateSavedData();
+				$response = $this->populateSavedData();
 			}
-			else{
+			if(!$response){
 				$key = $this->addApiKeyRow($username);
 				$config->set('apikey', $key);	
 			}
-		}
+		}		
 	}
 
 	/**
@@ -322,6 +323,7 @@ class PluginExtension extends Plugin
      */
 	function firstRun()
 	{
+		
 		$sql = 'SHOW TABLES LIKE \'' . API_NEW_TABLE . '\'';
 		$res = db_query($sql);
 		return (db_num_rows($res) == 0);
@@ -356,12 +358,15 @@ class PluginExtension extends Plugin
 	 * Inserts all the stored data from previous plugin uses in the new tables.
 	 * 
 	 * And changes all previous suspended tickets back to suspended.
+	 * 
+	 *  @return boolean true if the table is empty, flase if not.
      */
 	function populateSavedData(){
 		$installer = new TableInstaller();
-		$installer->runJob(SAVED_DATA_SQL);
+		$response = $installer->runJob(SAVED_DATA_SQL);
 
 		$this->suspendAllPreviousSuspendedTickets();
+		return $response;
 	}
 
 	/**

@@ -358,9 +358,6 @@ class TicketExtension extends Ticket{
                 if (!$res)
                     return false;
 
-
-
-
                 //fazer a diferença e dps meter os valores
 
                 $initialDatetime = new DateTime($this->getSLADueDate(false));
