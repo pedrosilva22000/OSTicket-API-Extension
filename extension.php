@@ -359,7 +359,7 @@ class PluginExtension extends Plugin
 	 * 
 	 * And changes all previous suspended tickets back to suspended.
 	 * 
-	 *  @return boolean true if the table is empty, flase if not.
+	 *  @return boolean true if the saved data SQL isn't empty, flase if not.
      */
 	function populateSavedData(){
 		$installer = new TableInstaller();
