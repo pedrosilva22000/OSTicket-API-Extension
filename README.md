@@ -20,8 +20,8 @@ As part of my college programming course’s final project, my team and I design
 ## Documentation  
 For full technical details, API reference, and setup instructions, visit the project’s GitBook:  
 🔗 [**GitBook Documentation**](https://tomasgomesisel.gitbook.io/projeto-ansr-isel)  
-For the full report, please refer to the project's report repository at:  
-🔗 [**Project Report**](https://github.com/TomasGomes02/ostTicket-API).
+For the full report (in Portuguese), please refer to the project's report repository at:  
+🔗 [**Project Report**](https://github.com/TomasGomes02/ostTicket-API)
 
 ---
 
